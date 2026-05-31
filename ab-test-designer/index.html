@@ -1,0 +1,1591 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A/B 实验设计助手｜创作者增长验证台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fc;
+      --paper: #f8fafd;
+      --panel: rgba(255, 255, 255, .94);
+      --panel-strong: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --soft: #f8fafd;
+      --line: #dce3ee;
+      --line-strong: #c6d0df;
+      --green: #12b9a6;
+      --mint: #e8f8f5;
+      --blue: #2f6bff;
+      --blue-soft: #eaf1ff;
+      --orange: #d86b2f;
+      --orange-soft: #fff0df;
+      --red: #bc4439;
+      --gold: #9a711b;
+      --shadow: 0 16px 42px rgba(23, 32, 51, .08);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { overflow-x: hidden; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        linear-gradient(90deg, rgba(47, 107, 255, .045) 1px, transparent 1px),
+        linear-gradient(rgba(18, 185, 166, .045) 1px, transparent 1px),
+        radial-gradient(circle at 0% 0%, rgba(239, 68, 68, .10), transparent 24rem),
+        radial-gradient(circle at 100% 0%, rgba(47, 107, 255, .13), transparent 28rem),
+        var(--bg);
+      background-size: 32px 32px, 32px 32px, auto, auto, auto;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    h1, h2, h3, p { margin-top: 0; }
+
+    .shell {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 44px;
+      overflow: visible;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border: 0;
+      border-radius: var(--radius);
+      color: #fff;
+      background: linear-gradient(135deg, #111827, var(--blue) 55%, var(--green));
+      box-shadow: 0 12px 28px rgba(47, 107, 255, .24);
+      font-size: 17px;
+      font-weight: 950;
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(26px, 3.2vw, 42px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0 15px;
+      color: var(--ink);
+      background: rgba(255, 253, 247, .9);
+      box-shadow: 0 12px 24px rgba(24, 33, 30, .07);
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      box-shadow: 0 16px 28px rgba(24, 33, 30, .11);
+    }
+
+    .btn.primary {
+      border-color: #111827;
+      color: #fff;
+      background: #111827;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: .62;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .pipeline-nav {
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,253,247,.88);
+      box-shadow: 0 10px 26px rgba(24,33,30,.06);
+      overflow: hidden;
+    }
+
+    .pipeline-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+
+    .pipeline-label {
+      font-size: 11px;
+      font-weight: 950;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .pipeline-steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .pipeline-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: var(--muted);
+      border: 1px solid transparent;
+      text-decoration: none;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 850;
+      transition: all .16s ease;
+    }
+
+    a.pipeline-step:hover {
+      color: var(--ink);
+      border-color: rgba(21,118,91,.28);
+      background: rgba(21,118,91,.07);
+    }
+
+    .pipeline-step.ps-current {
+      color: #fff;
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .ps-num { opacity: .75; font-size: 11px; }
+    .ps-arrow { color: var(--muted); font-size: 11px; opacity: .4; }
+
+    .pipeline-insight {
+      margin-left: auto;
+      color: var(--green);
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .command {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 124px;
+      gap: 12px;
+      align-items: stretch;
+      background:
+        linear-gradient(120deg, rgba(255, 250, 240, .96), rgba(238, 247, 242, .94)),
+        var(--panel);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(21, 118, 91, .22);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: var(--green);
+      background: rgba(21, 118, 91, .08);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .statement {
+      margin: 0;
+      max-width: 900px;
+      font-size: clamp(18px, 1.45vw, 24px);
+      font-weight: 950;
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    .statement strong { color: var(--orange); }
+
+    .confidence {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 11px;
+      background: #fff;
+      display: grid;
+      align-content: space-between;
+      gap: 14px;
+    }
+
+    .ring {
+      --p: 82;
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--green) calc(var(--p) * 1%), rgba(21,118,91,.13) 0);
+      position: relative;
+      color: var(--green);
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .ring::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .ring span { position: relative; z-index: 1; }
+
+    .confidence h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .confidence p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .insight {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+      min-height: 78px;
+    }
+
+    .metric b {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .metric span {
+      display: block;
+      font-size: 22px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(330px, 390px) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    .input-panel {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      min-width: 0;
+    }
+
+    .support-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #fbfcff);
+    }
+
+    .panel-head h2 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      line-height: 1.15;
+    }
+
+    .panel-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      border: 1px solid rgba(21,118,91,.22);
+      border-radius: 999px;
+      padding: 6px 9px;
+      color: var(--green);
+      background: rgba(21,118,91,.08);
+      font-size: 12px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .form {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: #34433e;
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(21, 118, 91, .13);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 7px 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .check input {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--green);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 550;
+      line-height: 1.45;
+    }
+
+    .main-stack {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding-top: 2px;
+    }
+
+    .form-actions .btn {
+      width: 100%;
+      box-shadow: none;
+    }
+
+    .blueprint {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .variant {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #fff;
+      min-height: 108px;
+      position: relative;
+    }
+
+    .variant::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      border-radius: 8px 0 0 8px;
+      background: var(--blue);
+    }
+
+    .variant.test::before { background: var(--orange); }
+
+    .variant h3 {
+      margin: 0 0 7px;
+      font-size: 14px;
+    }
+
+    .variant p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .section-grid.compact-three {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .strategy-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .strategy-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+      min-height: 104px;
+    }
+
+    .strategy-card b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .strategy-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .strategy-card.highlight {
+      border-color: rgba(21,118,91,.32);
+      background: rgba(21,118,91,.055);
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 12px;
+      list-style: none;
+    }
+
+    .list li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 9px;
+      color: #3b4844;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius);
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .danger .mark {
+      color: var(--red);
+      background: #f7e4e0;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .phase {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .phase b {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .phase span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .compact-block {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .compact-details summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      list-style: none;
+      background: linear-gradient(180deg, #fff, #fbfcff);
+    }
+
+    .compact-details summary::-webkit-details-marker { display: none; }
+    .compact-details summary b { display: block; font-size: 16px; }
+    .compact-details summary small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .comp-row {
+      display: grid;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 9px;
+      background: #fff;
+    }
+
+    .comp-row b {
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .comp-row span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .positioning {
+      margin: 0;
+      border: 1px solid rgba(21,118,91,.24);
+      border-radius: var(--radius);
+      padding: 11px 12px;
+      background: rgba(21,118,91,.06);
+      color: #2f5f51;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .upgrade {
+      display: grid;
+      gap: 8px;
+      padding: 0;
+    }
+
+    .upgrade-step {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .upgrade-step.now {
+      border-color: rgba(21,118,91,.35);
+      background: linear-gradient(130deg, #fff, #eef8f2);
+    }
+
+    .upgrade-step.next {
+      border-color: rgba(216,107,47,.35);
+      background: linear-gradient(130deg, #fff, #fff0df);
+    }
+
+    .upgrade-step b {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .upgrade-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.48;
+    }
+
+    .source-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 0;
+    }
+
+    .source-links a {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 8px;
+      color: var(--muted);
+      background: #fff;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .conclusion {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 0;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .note strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .analysis-toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 20;
+      border: 1px solid rgba(21,118,91,.28);
+      border-radius: 8px;
+      padding: 10px 13px;
+      color: var(--ink);
+      background: rgba(255,253,247,.96);
+      box-shadow: 0 14px 34px rgba(20,32,29,.14);
+      font-size: 13px;
+      font-weight: 850;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .analysis-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .changelog { order: -1; grid-column: 1 / -1; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(255,255,255,.88); box-shadow: 0 12px 30px rgba(23,32,51,.06); margin-bottom: 0; overflow: hidden; }
+    .changelog-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border: none; background: rgba(47,107,255,.055); color: var(--ink); cursor: pointer; text-align: left; transition: background .16s; }
+    .changelog-toggle:hover { background: rgba(47,107,255,.09); }
+    .changelog-toggle-left { display: flex; align-items: center; gap: 10px; }
+    .changelog-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 12px; font-weight: 900; white-space: nowrap; }
+    .changelog-title { color: var(--ink); font-size: 13px; font-weight: 850; }
+    .changelog-caret { color: var(--muted); font-size: 12px; transition: transform .2s; flex-shrink: 0; }
+    .changelog.open .changelog-caret { transform: rotate(180deg); }
+    .changelog-body { display: none; padding: 0 16px 16px; }
+    .changelog.open .changelog-body { display: block; }
+    .cl-section-title { display: flex; align-items: center; gap: 8px; margin: 16px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .cl-section-title:first-child { margin-top: 4px; }
+    .cl-section-icon { font-size: 14px; }
+    .cl-rival-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .cl-rival-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: rgba(255,255,255,.74); transition: border-color .16s; }
+    .cl-rival-card:hover { border-color: rgba(47,107,255,.32); }
+    .cl-rival-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .cl-rival-icon { font-size: 20px; flex-shrink: 0; }
+    .cl-rival-name { color: var(--ink); font-size: 13px; font-weight: 850; line-height: 1.3; }
+    .cl-rival-label { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; background: rgba(23,32,51,.06); color: var(--muted); font-size: 10px; font-weight: 800; }
+    .cl-rival-list { margin: 0; padding: 0 0 0 16px; color: #4f5b71; font-size: 12px; line-height: 1.75; }
+    .cl-rival-list li { margin-bottom: 2px; }
+    .cl-rival-list li.cl-rival-weak { color: var(--muted); opacity: .78; }
+    .cl-innovation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 9px; margin-bottom: 12px; }
+    .cl-inno-card { border: 1px solid rgba(18,185,166,.22); border-radius: 8px; padding: 12px; background: rgba(18,185,166,.045); transition: transform .14s, box-shadow .14s; }
+    .cl-inno-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(18,185,166,.1); }
+    .cl-inno-icon { margin-bottom: 6px; font-size: 18px; }
+    .cl-inno-title { margin-bottom: 4px; color: var(--ink); font-size: 12px; font-weight: 900; }
+    .cl-inno-desc { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .cl-core-insight { margin-bottom: 8px; padding: 12px 14px; border-left: 3px solid var(--blue); border-radius: 8px; background: rgba(47,107,255,.055); color: #244a9a; font-size: 12px; line-height: 1.7; }
+    .cl-core-label { margin-bottom: 5px; color: var(--blue); font-size: 11px; font-weight: 900; letter-spacing: .04em; }
+    .cl-roadmap { position: relative; margin-bottom: 12px; padding-left: 20px; }
+    .cl-roadmap::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; border-radius: 999px; background: linear-gradient(to bottom, var(--blue), var(--green)); opacity: .42; }
+    .cl-roadmap-item { position: relative; padding: 8px 0 8px 14px; }
+    .cl-roadmap-dot { position: absolute; left: -17px; top: 12px; width: 8px; height: 8px; border: 2px solid rgba(255,255,255,.92); border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 2px rgba(47,107,255,.25); }
+    .cl-roadmap-title { margin-bottom: 2px; color: var(--ink); font-size: 12px; font-weight: 850; }
+    .cl-roadmap-desc { color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .cl-metric-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border: 1px solid rgba(47,107,255,.18); border-radius: 8px; background: rgba(47,107,255,.045); }
+    .cl-metric-label { flex-shrink: 0; color: var(--blue); font-size: 11px; font-weight: 900; }
+    .cl-metric-tag { display: inline-flex; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.7); color: var(--muted); font-size: 10px; font-weight: 750; }
+
+    @media (max-width: 1320px) {
+      .workspace { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
+      .insight { grid-template-columns: repeat(2, 1fr); }
+      .timeline, .section-grid.compact-three, .strategy-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 980px) {
+      .topbar, .command, .workspace, .hero, .section-grid, .blueprint, .side-stack, .support-grid, .mini-grid { grid-template-columns: 1fr; }
+      .insight, .timeline, .conclusion { grid-template-columns: repeat(2, 1fr); }
+      .actions { justify-content: flex-start; }
+      .input-panel { position: static; }
+      .pipeline-insight { display: none; }
+      .pipeline-inner { gap: 8px; }
+      .pipeline-steps { min-width: 0; overflow-x: auto; padding-bottom: 2px; }
+      .pipeline-step { flex: 0 0 auto; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 22px, 1640px); }
+      .field-grid, .check-grid, .insight, .timeline, .conclusion, .form-actions, .strategy-strip, .cl-rival-grid { grid-template-columns: 1fr; }
+      .statement { font-size: 24px; }
+      .metric { min-height: auto; }
+    }
+  
+
+    /* lightweight user feedback */
+    .tool-feedback{margin:12px 0 2px;padding:12px;border:1px solid rgba(15,159,179,.22);border-radius:8px;background:rgba(255,255,255,.72);font-size:12px;line-height:1.6;color:var(--muted, #65736f)}
+    .tool-feedback-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .tool-feedback-title{color:var(--ink, var(--text, #15211f));font-size:13px;font-weight:900}
+    .tool-feedback-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .tool-feedback-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:#fff;color:var(--muted, #65736f);font-size:12px;font-weight:900;transition:all .16s}
+    .tool-feedback-btn:hover{border-color:rgba(15,159,179,.38);color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));background:rgba(15,159,179,.06)}
+    .tool-feedback-btn.active{border-color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));color:#fff;background:var(--brand, var(--accent, var(--cyan, #0f9fb3)));box-shadow:0 8px 18px rgba(15,159,179,.16)}
+    .tool-feedback-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line, var(--line-soft, #d6e0de))}
+    .tool-feedback.show-detail .tool-feedback-detail{display:block}
+    .tool-feedback-question{margin-bottom:8px;color:var(--muted, #65736f);font-weight:800}
+    .tool-feedback-reasons{display:flex;gap:7px;flex-wrap:wrap}
+    .tool-feedback-reason{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:rgba(255,255,255,.74);color:var(--muted, #65736f);font-size:11px;font-weight:850}
+    .tool-feedback-reason:hover{border-color:rgba(15,159,179,.36);color:var(--ink, var(--text, #15211f))}
+    .tool-feedback-reason.active{border-color:rgba(22,122,90,.45);color:var(--green, #167a5a);background:rgba(22,122,90,.08)}
+    .tool-feedback-input{width:100%;margin-top:10px;min-height:72px;resize:vertical;background:#fff;font-size:12px;line-height:1.55}
+    .tool-feedback-save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+    .tool-feedback-note{color:var(--green, #167a5a);font-size:11px;font-weight:850}
+    .tool-feedback-save{min-height:28px;padding:0 11px;font-size:11px}
+
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">A/B</div>
+      <div>
+        <h1>创作者 A/B 实验设计助手</h1>
+        <p class="subtitle">从复盘假设到实验口径：样本量、周期、成功标准、竞品启发一次成案。</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="pipeline-nav" aria-label="创作者增长闭环">
+    <div class="pipeline-inner">
+      <span class="pipeline-label">创作者增长闭环</span>
+      <div class="pipeline-steps">
+        <a class="pipeline-step" href="../inspiration-station/index.html"><span class="ps-num">①</span><span class="ps-name">选题</span></a>
+        <span class="ps-arrow">→</span>
+        <a class="pipeline-step" href="../content-safety-copilot/index.html"><span class="ps-num">②</span><span class="ps-name">创作合规</span></a>
+        <span class="ps-arrow">→</span>
+        <a class="pipeline-step" href="../creator-postmortem-ai/index.html"><span class="ps-num">③</span><span class="ps-name">复盘诊断</span></a>
+        <span class="ps-arrow">→</span>
+        <a class="pipeline-step" href="../creatorinsight-ai/index.html"><span class="ps-num">④</span><span class="ps-name">增长规划</span></a>
+        <span class="ps-arrow">→</span>
+        <span class="pipeline-step ps-current" aria-current="step"><span class="ps-num">⑤</span><span class="ps-name">实验验证</span></span>
+        <span class="ps-arrow" style="opacity:.25">·</span>
+        <a class="pipeline-step" href="../prd-copilot/index.html"><span class="ps-num">+</span><span class="ps-name">PRD方案化</span></a>
+        <a class="pipeline-step" href="../launcher.html"><span class="ps-name">返回合集</span></a>
+      </div>
+      <span class="pipeline-insight">💡 本页解决“这个改法是否有效”，把增长动作变成可验证实验。</span>
+    </div>
+  </nav>
+
+  <main class="workspace">
+    <section class="changelog open" id="changelog">
+      <button class="changelog-toggle" id="changelogToggle" type="button" aria-expanded="true">
+        <div class="changelog-toggle-left">
+          <span class="changelog-badge">v2.0</span>
+          <span class="changelog-title">竞品对比 · 创新点 · 优化方向</span>
+        </div>
+        <span class="changelog-caret">▼</span>
+      </button>
+      <div class="changelog-body">
+        <div class="cl-section-title"><span class="cl-section-icon">📊</span>市面竞品现状</div>
+        <div class="cl-rival-grid">
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🧪</span><div><div class="cl-rival-name">Optimizely</div><span class="cl-rival-label">企业实验</span></div></div><ul class="cl-rival-list"><li>强在网页变体、流量分配、统计检验和转化率优化</li><li class="cl-rival-weak">适合高流量产品团队，不适合低频内容发布场景</li><li class="cl-rival-weak">工程接入和实验治理成本高，个人创作者难以使用</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">📊</span><div><div class="cl-rival-name">VWO</div><span class="cl-rival-label">转化优化</span></div></div><ul class="cl-rival-list"><li>提供可视化编辑、转化漏斗和网页 A/B 测试能力</li><li class="cl-rival-weak">核心目标是网页转化率，不是短视频内容变量验证</li><li class="cl-rival-weak">需要稳定访问量，低样本创作者很难达到统计要求</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🚩</span><div><div class="cl-rival-name">Kameleoon</div><span class="cl-rival-label">Feature Flag</span></div></div><ul class="cl-rival-list"><li>强在人群个性化、渐进发布和产品实验治理</li><li class="cl-rival-weak">依赖工程环境和用户分流系统，超出创作者工具需求</li><li class="cl-rival-weak">不解决内容创作者“这一轮先测什么变量”的问题</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🎯</span><div><div class="cl-rival-name">AB Tasty</div><span class="cl-rival-label">增长平台</span></div></div><ul class="cl-rival-list"><li>适合成熟产品团队做体验优化、个性化和实验治理</li><li class="cl-rival-weak">工具重、配置多，个人创作者没有足够数据和流程支撑</li><li class="cl-rival-weak">缺少对短视频发布节奏和内容噪音的解释</li></ul></div>
+        </div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">💡</span>我们的创新点</div>
+        <div class="cl-innovation-grid">
+          <div class="cl-inno-card"><div class="cl-inno-icon">🎛️</div><div class="cl-inno-title">单变量拆解</div><div class="cl-inno-desc">把增长动作拆成标题、封面、开头钩子等可验证变量</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">📉</div><div class="cl-inno-title">低样本友好</div><div class="cl-inno-desc">不强行套网页流量统计，而是给出复核节奏和噪音提示</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">🧾</div><div class="cl-inno-title">实验蓝图自动生成</div><div class="cl-inno-desc">自动生成对照组、实验组、成功标准和风险提醒</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">🔁</div><div class="cl-inno-title">承接复盘假设</div><div class="cl-inno-desc">从复盘诊断接收下一条假设，直接转成实验方案</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">📚</div><div class="cl-inno-title">变量资产沉淀</div><div class="cl-inno-desc">把有效、无效和待复测变量沉淀为账号自己的实验资产</div></div>
+        </div>
+        <div class="cl-core-insight"><div class="cl-core-label">核心判断</div>企业 A/B 工具解决的是高流量产品实验治理，个人创作者需要的是低样本、低频发布下的“先测什么、怎么判、何时复核”。所以本工具把复杂统计简化为内容实验蓝图。</div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">🚀</span>后续优化方向</div>
+        <div class="cl-roadmap">
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">接入发布结果</div><div class="cl-roadmap-desc">自动读取实验组和对照组的播放、完播、互动和转粉数据</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">轻量统计检验</div><div class="cl-roadmap-desc">在样本足够时提示显著性，不足时明确提醒继续观察</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">LLM 复盘解释</div><div class="cl-roadmap-desc">解释为什么某个变量有效，并生成下一轮实验建议</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">回写增长规划</div><div class="cl-roadmap-desc">把有效变量同步到账号增长路径和内容策略里</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">实验资产库</div><div class="cl-roadmap-desc">按账号、垂类和目标沉淀可复用实验模板</div></div></div>
+        </div>
+        <div class="cl-metric-bar"><span class="cl-metric-label">🎯 验证指标</span><span class="cl-metric-tag">实验完成率</span><span class="cl-metric-tag">结论可复用率</span><span class="cl-metric-tag">有效变量沉淀量</span><span class="cl-metric-tag">下一轮指标提升</span></div>
+      </div>
+    </section>
+
+    <section class="panel input-panel">
+      <div class="panel-head">
+        <div>
+          <h2>1. 填写实验口径</h2>
+          <p>先写假设，再点击生成；系统会先思考实验口径，再在右侧输出结果。</p>
+        </div>
+        <span class="badge">验证层 · 06</span>
+      </div>
+
+      <form class="form" id="experimentForm">
+        <label>
+          实验假设
+          <textarea id="hypothesis">把前三秒开头改成悬念问题，能提升知识科普视频的完播率。</textarea>
+          <span class="hint">写清楚「改什么」和「想提升哪个指标」。</span>
+        </label>
+
+        <div class="field-grid">
+          <label>
+            实验变量
+            <select id="variable">
+              <option>开头钩子</option>
+              <option>标题</option>
+              <option>封面</option>
+              <option>内容结构</option>
+              <option>结尾 CTA</option>
+              <option>发布时间</option>
+            </select>
+          </label>
+          <label>
+            核心指标
+            <select id="primaryMetric">
+              <option>完播率</option>
+              <option>互动率</option>
+              <option>涨粉率</option>
+              <option>播放量</option>
+              <option>点击率</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          次要指标
+          <div class="check-grid">
+            <span class="check"><input type="checkbox" value="互动率" checked>互动率</span>
+            <span class="check"><input type="checkbox" value="平均观看时长" checked>平均观看时长</span>
+            <span class="check"><input type="checkbox" value="评论率">评论率</span>
+            <span class="check"><input type="checkbox" value="涨粉率" checked>涨粉率</span>
+          </div>
+        </label>
+
+        <div class="field-grid">
+          <label>
+            当前基准
+            <input id="baseline" type="number" min="1" max="1000000" value="38">
+            <span class="hint">百分比指标填 0-100；播放量填均值。</span>
+          </label>
+          <label>
+            目标提升
+            <input id="uplift" type="number" min="1" max="100" value="4">
+            <span class="hint">百分比指标按百分点；播放量按百分比。</span>
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label>
+            账号阶段
+            <select id="stage">
+              <option value="冷启动">冷启动</option>
+              <option value="成长期" selected>成长期</option>
+              <option value="稳定期">稳定期</option>
+              <option value="突破期">突破期</option>
+            </select>
+          </label>
+          <label>
+            垂类
+            <select id="category">
+              <option>知识科普</option>
+              <option>职场成长</option>
+              <option>生活方式</option>
+              <option>美妆穿搭</option>
+              <option>本地探店</option>
+              <option>带货种草</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label>
+            每周发布频率
+            <input id="frequency" type="number" min="1" max="21" value="5">
+          </label>
+          <label>
+            置信度
+            <select id="confidence">
+              <option value="80">80% 快速试错</option>
+              <option value="90" selected>90% 稳健判断</option>
+              <option value="95">95% 严格验证</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn" id="sampleBtn" type="button">换一个样例</button>
+          <button class="btn primary" id="generateBtn" type="button">生成分析</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="main-stack">
+      <section class="command">
+        <div class="panel hero">
+          <div>
+            <span class="eyebrow">V2 · Creator Experiment OS</span>
+            <p class="statement" id="statement">填写左侧实验口径后，点击「生成分析」，这里会生成一句可直接复述的实验假设。</p>
+          </div>
+          <div class="confidence">
+            <div class="ring" id="ring"><span id="qualityScore">--</span></div>
+            <div>
+              <h2 id="qualityTitle">等待生成分析</h2>
+              <p id="qualityCopy">结果会在点击生成后出现，避免刷新页面时误以为已经完成分析。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel insight">
+          <div class="metric">
+            <b>建议样本量</b>
+            <span id="sampleSize">--</span>
+            <small id="sampleAdvice">生成后按账号阶段估算</small>
+          </div>
+          <div class="metric">
+            <b>预计周期</b>
+            <span id="duration">--</span>
+            <small>结合每周发布频率</small>
+          </div>
+          <div class="metric">
+            <b>成功门槛</b>
+            <span id="threshold">--</span>
+            <small id="thresholdCopy">生成后显示目标门槛</small>
+          </div>
+          <div class="metric">
+            <b>复核节奏</b>
+            <span id="cadence">--</span>
+            <small>避免单条波动误判</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>2. 实验蓝图</h2>
+            <p>只改一个关键变量，保留可归因口径。</p>
+          </div>
+          <button class="btn small" id="copyBtn" type="button">复制方案</button>
+        </div>
+        <div class="blueprint">
+          <div class="variant">
+            <h3>对照组 A · 延续当前做法</h3>
+            <p id="controlCopy">生成后显示对照组口径。</p>
+          </div>
+          <div class="variant test">
+            <h3>实验组 B · 应用新变量</h3>
+            <p id="testCopy">生成后显示实验组口径。</p>
+          </div>
+        </div>
+      </section>
+
+      
+        <div class="tool-feedback" id="toolFeedback" data-tool-feedback-key="ab_test">
+          <div class="tool-feedback-head">
+            <div>
+              <div class="tool-feedback-title">这个实验方案对你有帮助吗？</div>
+              <div style="margin-top:3px">用于判断实验蓝图、样本量和成功标准是否能帮助你验证改法。</div>
+            </div>
+            <div class="tool-feedback-actions" aria-label="结果反馈">
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="up">👍 有帮助</button>
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="down">👎 没帮助</button>
+            </div>
+          </div>
+          <div class="tool-feedback-detail">
+            <div class="tool-feedback-question" id="toolFeedbackQuestion">哪里不够好？</div>
+            <div class="tool-feedback-reasons" id="toolFeedbackReasons"></div>
+            <textarea class="tool-feedback-input" id="toolFeedbackText" placeholder="也可以直接写一句具体反馈，例如：实验组和对照组清楚，但样本量对我的账号偏大。"></textarea>
+            <div class="tool-feedback-save-row">
+              <div class="tool-feedback-note" id="toolFeedbackNote"></div>
+              <button class="btn ghost tool-feedback-save" id="toolFeedbackSaveBtn" type="button">保存补充说明</button>
+            </div>
+          </div>
+        </div>
+        <div class="section-grid compact-three">
+        <section class="panel">
+          <div class="panel-head"><div><h2>3. 成功标准</h2><p>提前写清楚，防止事后解释。</p></div></div>
+          <ul class="list" id="successList"></ul>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><h2>4. 风险提示</h2><p>低样本实验最容易被噪音带偏。</p></div></div>
+          <ul class="list danger" id="riskList"></ul>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><h2>5. 执行节奏</h2><p>按发布批次推进。</p></div></div>
+          <div class="timeline" id="timeline"></div>
+        </section>
+      </div>
+
+      <section class="support-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>6. 复盘沉淀</h2>
+              <p>实验结束后回写复盘诊断，沉淀账号自己的有效变量。</p>
+            </div>
+            <a class="btn small" href="../creator-postmortem-ai/index.html" style="text-decoration:none">回到复盘 →</a>
+          </div>
+          <div class="compact-block">
+            <div class="conclusion">
+              <div class="note"><strong>显著有效</strong><span id="winTemplate"></span></div>
+              <div class="note"><strong>无显著差异</strong><span id="flatTemplate"></span></div>
+              <div class="note"><strong>继续观察</strong><span id="holdTemplate"></span></div>
+            </div>
+            <div class="conclusion">
+              <div class="note"><strong>有效变量</strong><span id="assetWin">生成后会给出可复用变量。</span></div>
+              <div class="note"><strong>无效变量</strong><span id="assetLose">生成后会标记不建议继续放大的变量。</span></div>
+              <div class="note"><strong>待复测变量</strong><span id="assetRetest">生成后会提示还需要补样本的变量。</span></div>
+            </div>
+            <p class="positioning">核心指标：实验完成率 · 结论可复用率 · 有效变量沉淀量 · 下一轮内容指标提升。</p>
+          </div>
+        </section>
+
+        <details class="panel compact-details">
+          <summary>
+            <span>
+              <b>产品取舍</b>
+              <small>竞品分析 / 版本升级 / 后续迭代计划</small>
+            </span>
+            <span class="badge">展开查看</span>
+          </summary>
+          <div class="compact-block">
+            <div class="mini-grid">
+              <div class="comp-row"><b>企业工具强项</b><span>Optimizely、VWO、Kameleoon、AB Tasty 强在流量分配、网页变体、统计引擎和 feature flag。</span></div>
+              <div class="comp-row"><b>本工具取舍</b><span>不拼企业级流量平台，优先解决创作者低样本、低频发布时的变量污染、样本量和复核节奏。</span></div>
+              <div class="upgrade-step now"><b>当前优势</b><p>承接增长动作，自动生成对照组、实验组、成功门槛和结论模板。</p></div>
+              <div class="upgrade-step next"><b>下一版方向</b><p>接入发布结果、统计检验和 LLM 复盘解释，把结论回写增长助手和复盘诊断台。</p></div>
+            </div>
+            <p class="positioning">当前样本量、周期和风险判断来自规则估算，后续需要接入发布记录、统计检验 API 和大模型复盘解释。</p>
+            <div class="source-links">
+              <a href="https://www.optimizely.com/" target="_blank" rel="noreferrer">Optimizely</a>
+              <a href="https://vwo.com/" target="_blank" rel="noreferrer">VWO</a>
+              <a href="https://www.kameleoon.com/" target="_blank" rel="noreferrer">Kameleoon</a>
+              <a href="https://www.abtasty.com/" target="_blank" rel="noreferrer">AB Tasty</a>
+            </div>
+          </div>
+        </details>
+      </section>
+    </section>
+  </main>
+</div>
+<div class="analysis-toast" id="analysisToast">实验分析已生成</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const metricDirections = {
+    "完播率": "提升",
+    "互动率": "提升",
+    "涨粉率": "提升",
+    "播放量": "提升",
+    "点击率": "提升"
+  };
+  const variableActions = {
+    "开头钩子": "前三秒开头",
+    "标题": "标题表达",
+    "封面": "封面信息密度",
+    "内容结构": "信息展开顺序",
+    "结尾 CTA": "结尾互动引导",
+    "发布时间": "发布时间窗口"
+  };
+  const stageFactor = {
+    "冷启动": 1.35,
+    "成长期": 1,
+    "稳定期": .82,
+    "突破期": 1.12
+  };
+  const confidenceFactor = { 80: .8, 90: 1, 95: 1.28 };
+  let hasGenerated = false;
+  let isGenerating = false;
+  let generateTimer = null;
+  let sampleIndex = 0;
+  const samples = [
+    {
+      hypothesis: "把前三秒开头改成悬念问题，能提升知识科普视频的完播率。",
+      variable: "开头钩子",
+      primaryMetric: "完播率",
+      secondaries: ["互动率", "平均观看时长", "涨粉率"],
+      baseline: 38,
+      uplift: 4,
+      stage: "成长期",
+      category: "知识科普",
+      frequency: 5,
+      confidence: "90"
+    },
+    {
+      hypothesis: "把封面从人物自拍改成结果对比图，能提升穿搭内容的点击率。",
+      variable: "封面",
+      primaryMetric: "点击率",
+      secondaries: ["互动率", "评论率"],
+      baseline: 6,
+      uplift: 2,
+      stage: "稳定期",
+      category: "美妆穿搭",
+      frequency: 4,
+      confidence: "90"
+    },
+    {
+      hypothesis: "把结尾 CTA 从泛泛求关注改成评论区领取清单，能提升职场内容互动率。",
+      variable: "结尾 CTA",
+      primaryMetric: "互动率",
+      secondaries: ["评论率", "涨粉率"],
+      baseline: 4.5,
+      uplift: 1.5,
+      stage: "冷启动",
+      category: "职场成长",
+      frequency: 6,
+      confidence: "80"
+    }
+  ];
+
+  function getSecondaries() {
+    return [...document.querySelectorAll(".check input:checked")].map(input => input.value);
+  }
+
+  function metricText(value, metric) {
+    return metric === "播放量" ? `${Math.round(value)}` : `${Math.round(value * 10) / 10}%`;
+  }
+
+  function calculate() {
+    const hypothesis = $("hypothesis").value.trim() || "优化一个创作变量";
+    const variable = $("variable").value;
+    const metric = $("primaryMetric").value;
+    const baseline = Math.max(Number($("baseline").value) || 1, 1);
+    const uplift = Math.max(Number($("uplift").value) || 1, 1);
+    const stage = $("stage").value;
+    const category = $("category").value;
+    const frequency = Math.max(Number($("frequency").value) || 1, 1);
+    const confidence = $("confidence").value;
+    const secondaries = getSecondaries();
+    const isVolume = metric === "播放量";
+    const target = isVolume ? baseline * (1 + uplift / 100) : Math.min(100, baseline + uplift);
+    const rawSample = Math.ceil((12 / Math.sqrt(uplift)) * stageFactor[stage] * confidenceFactor[confidence]);
+    const sample = Math.max(8, rawSample + (secondaries.length > 2 ? 2 : 0));
+    const weeks = Math.max(2, Math.ceil(sample / frequency));
+    const score = Math.max(62, Math.min(96, Math.round(96 - weeks * 3 + secondaries.length * 2 - (confidence === "95" ? 4 : 0))));
+    const action = variableActions[variable];
+    const targetText = metricText(target, metric);
+    const baselineText = metricText(baseline, metric);
+    const reviewEvery = Math.max(2, Math.ceil(sample / 4));
+
+    $("statement").innerHTML = `如果把 <strong>${action}</strong> 做成 A/B 对照，${category}账号的 ${metric} 预计从 ${baselineText} ${metricDirections[metric]} 到 ${targetText}。`;
+    $("ring").style.setProperty("--p", score);
+    $("qualityScore").textContent = score;
+    $("qualityTitle").textContent = score >= 84 ? "实验口径健康" : score >= 74 ? "需要控制样本噪音" : "建议缩小变量范围";
+    $("qualityCopy").textContent = `${stage}账号更适合按批次判断，先证明方向，再决定是否放大策略。`;
+    $("sampleSize").textContent = `${sample} 条`;
+    $("duration").textContent = `${weeks} 周`;
+    $("threshold").textContent = targetText;
+    $("cadence").textContent = `每 ${reviewEvery} 条`;
+    $("sampleAdvice").textContent = `${confidence}% 置信度 · ${secondaries.length || 1} 个辅助指标`;
+    $("thresholdCopy").textContent = `${metric} 高于 ${baselineText} 且辅助指标不明显回落`;
+
+    $("controlCopy").textContent = `保持当前${variable}做法，标题、封面、脚本结构和发布时间沿用近期常规内容。记录 ${metric}、${secondaries.join("、") || "辅助指标"} 作为对照基线。`;
+    $("testCopy").textContent = `只调整${action}：围绕「${hypothesis}」设计新版本，其余条件尽量与对照组一致，连续发布并观察同一批指标。`;
+
+    renderList("successList", [
+      `${metric} 达到或超过 ${targetText}，并至少连续 2 条高于基准 ${baselineText}。`,
+      `${secondaries[0] || "辅助指标"} 未出现明显下滑，避免主指标提升但内容质量变差。`,
+      `实验期间不同时修改标题、封面、发布时间等其他变量。`
+    ]);
+
+    renderList("riskList", [
+      `变量污染：如果同时改多个元素，结果无法归因到「${variable}」。`,
+      `${stage}账号样本波动较大，单条爆款或低谷都不应直接下结论。`,
+      `平台流量池、热点事件、节假日会影响 ${category} 内容表现，需要在复盘中单独标注。`
+    ]);
+
+    renderTimeline(sample, weeks, metric, variable);
+    $("winTemplate").textContent = `实验组 ${metric} 达到 ${targetText} 且辅助指标稳定，建议把「${variable}」新方案沉淀为创作模板。`;
+    $("flatTemplate").textContent = `实验组与对照组差距低于目标提升，暂不扩大应用，回到复盘诊断台寻找更关键变量。`;
+    $("holdTemplate").textContent = `当前样本量不足或波动过大，继续补齐 ${Math.max(4, Math.ceil(sample / 3))} 条样本后再判断。`;
+    $("assetWin").textContent = `若达标：将「${variable}」的新做法加入有效变量库，后续同类内容优先复用。`;
+    $("assetLose").textContent = `若未达标：标记「${variable}」当前方案无效，避免连续重复投入。`;
+    $("assetRetest").textContent = `若样本不足：保留为待复测变量，下轮补齐 ${Math.max(4, Math.ceil(sample / 3))} 条样本再判断。`;
+  }
+
+  function renderList(id, items) {
+    $(id).innerHTML = items.map((item, index) => `<li><span class="mark">${index + 1}</span><span>${item}</span></li>`).join("");
+  }
+
+  function renderTimeline(sample, weeks, metric, variable) {
+    const firstBatch = Math.ceil(sample / 2);
+    const phases = [
+      ["冻结口径", `确定只测试「${variable}」，记录近 3 条 ${metric} 均值。`],
+      ["第一批", `发布 ${firstBatch} 条内容，A/B 版本交替，不中途改创意策略。`],
+      ["第二批", `补齐 ${sample} 条样本，按同一时间窗口收集完整数据。`],
+      ["复盘归档", `${weeks} 周后输出结论：放大、放弃，或继续观察。`]
+    ];
+    $("timeline").innerHTML = phases.map(([title, body]) => `<div class="phase"><b>${title}</b><span>${body}</span></div>`).join("");
+  }
+
+  function loadSample() {
+    window.clearTimeout(generateTimer);
+    const sample = samples[sampleIndex % samples.length];
+    sampleIndex++;
+    $("hypothesis").value = sample.hypothesis;
+    $("variable").value = sample.variable;
+    $("primaryMetric").value = sample.primaryMetric;
+    $("baseline").value = sample.baseline;
+    $("uplift").value = sample.uplift;
+    $("stage").value = sample.stage;
+    $("category").value = sample.category;
+    $("frequency").value = sample.frequency;
+    $("confidence").value = sample.confidence;
+    document.querySelectorAll(".check input").forEach(input => {
+      input.checked = sample.secondaries.includes(input.value);
+    });
+    clearAnalysis();
+    generateAnalysis();
+  }
+
+  function clearAnalysis() {
+    hasGenerated = false;
+    isGenerating = false;
+    $("statement").textContent = "填写左侧实验口径后，点击「生成分析」，这里会生成一句可直接复述的实验假设。";
+    $("ring").style.setProperty("--p", 0);
+    $("qualityScore").textContent = "--";
+    $("qualityTitle").textContent = "等待生成分析";
+    $("qualityCopy").textContent = "结果会在点击生成后出现，避免刷新页面时误以为已经完成分析。";
+    $("sampleSize").textContent = "--";
+    $("duration").textContent = "--";
+    $("threshold").textContent = "--";
+    $("cadence").textContent = "--";
+    $("sampleAdvice").textContent = "生成后按账号阶段估算";
+    $("thresholdCopy").textContent = "生成后显示目标门槛";
+    $("controlCopy").textContent = "生成后显示对照组口径。";
+    $("testCopy").textContent = "生成后显示实验组口径。";
+    $("successList").innerHTML = "";
+    $("riskList").innerHTML = "";
+    $("timeline").innerHTML = "";
+    $("winTemplate").textContent = "";
+    $("flatTemplate").textContent = "";
+    $("holdTemplate").textContent = "";
+    $("assetWin").textContent = "生成后会给出可复用变量。";
+    $("assetLose").textContent = "生成后会标记不建议继续放大的变量。";
+    $("assetRetest").textContent = "生成后会提示还需要补样本的变量。";
+    $("generateBtn").disabled = false;
+    $("sampleBtn").disabled = false;
+    $("generateBtn").textContent = "生成分析";
+  }
+
+  function renderThinking() {
+    hasGenerated = false;
+    isGenerating = true;
+    $("statement").textContent = "正在检查变量是否单一、样本是否足够、成功标准是否可复盘...";
+    $("ring").style.setProperty("--p", 18);
+    $("qualityScore").textContent = "...";
+    $("qualityTitle").textContent = "正在分析实验口径";
+    $("qualityCopy").textContent = "系统正在根据账号阶段、发布频率、目标提升和辅助指标估算实验方案。";
+    $("sampleSize").textContent = "计算中";
+    $("duration").textContent = "计算中";
+    $("threshold").textContent = "计算中";
+    $("cadence").textContent = "计算中";
+    $("sampleAdvice").textContent = "正在估算样本量";
+    $("thresholdCopy").textContent = "正在生成目标门槛";
+    $("controlCopy").textContent = "正在生成对照组口径...";
+    $("testCopy").textContent = "正在生成实验组口径...";
+    $("successList").innerHTML = `<li><span class="mark">...</span><span>正在生成成功标准...</span></li>`;
+    $("riskList").innerHTML = `<li><span class="mark">...</span><span>正在识别低样本实验风险...</span></li>`;
+    $("timeline").innerHTML = `<div class="phase"><b>分析中</b><span>请稍等 1-2 秒，系统正在整理实验节奏。</span></div>`;
+    $("winTemplate").textContent = "";
+    $("flatTemplate").textContent = "";
+    $("holdTemplate").textContent = "";
+    $("assetWin").textContent = "正在判断有效变量...";
+    $("assetLose").textContent = "正在判断无效变量...";
+    $("assetRetest").textContent = "正在判断待复测变量...";
+    $("generateBtn").disabled = true;
+    $("sampleBtn").disabled = true;
+    $("generateBtn").textContent = "分析中...";
+  }
+
+  function copyPlan() {
+    const text = [
+      "A/B 实验设计方案",
+      "",
+      $("statement").textContent,
+      `建议样本量：${$("sampleSize").textContent}`,
+      `预计周期：${$("duration").textContent}`,
+      `成功门槛：${$("threshold").textContent}`,
+      `复核节奏：${$("cadence").textContent}`,
+      "",
+      "对照组：" + $("controlCopy").textContent,
+      "实验组：" + $("testCopy").textContent,
+      "",
+      "成功标准：",
+      ...[...$("successList").querySelectorAll("li span:last-child")].map((el, i) => `${i + 1}. ${el.textContent}`),
+      "",
+      "风险提示：",
+      ...[...$("riskList").querySelectorAll("li span:last-child")].map((el, i) => `${i + 1}. ${el.textContent}`)
+    ].join("\n");
+    navigator.clipboard?.writeText(text);
+    $("copyBtn").textContent = "已复制";
+    setTimeout(() => $("copyBtn").textContent = "复制方案", 1200);
+  }
+
+  function generateAnalysis() {
+    if (isGenerating) return;
+    renderThinking();
+    generateTimer = window.setTimeout(() => {
+      hasGenerated = true;
+      isGenerating = false;
+      calculate();
+      $("qualityTitle").textContent = "实验分析已生成";
+      $("analysisToast").classList.add("show");
+      $("generateBtn").disabled = false;
+      $("sampleBtn").disabled = false;
+      $("generateBtn").textContent = "重新生成分析";
+      setTimeout(() => $("analysisToast").classList.remove("show"), 1400);
+    }, 1400);
+  }
+
+  document.querySelectorAll("input, textarea, select").forEach(el => {
+    el.addEventListener("input", () => { if (hasGenerated) calculate(); });
+    el.addEventListener("change", () => { if (hasGenerated) calculate(); });
+  });
+  $("sampleBtn").addEventListener("click", loadSample);
+  $("generateBtn").addEventListener("click", generateAnalysis);
+  $("copyBtn").addEventListener("click", copyPlan);
+  $("changelogToggle").addEventListener("click", () => {
+    const cl = $("changelog");
+    const open = cl.classList.toggle("open");
+    $("changelogToggle").setAttribute("aria-expanded", open);
+  });
+  clearAnalysis();
+
+  // 闭环接收：增长规划 → 实验验证
+  try {
+    const _inc = JSON.parse(localStorage.getItem('cg_pipeline_growth') || 'null');
+    if (_inc?.focus) {
+      const stageLabel = _inc.stage ? `（${_inc.stage}）` : '';
+      $("hypothesis").value = `针对「${_inc.focus}」方向进行优化${stageLabel}，验证调整后能否提升${_inc.category || '内容'}的核心指标。`;
+      const tip = document.createElement("div");
+      tip.style.cssText = "margin-bottom:12px;padding:10px 14px;border:1px solid rgba(18,185,166,.28);border-radius:8px;background:rgba(18,185,166,.05);color:#0a6b62;font-size:13px";
+      tip.textContent = `✅ 已从增长规划接收优化方向「${_inc.focus}」，可直接点击「生成实验分析」。`;
+      document.querySelector(".shell")?.insertBefore(tip, document.querySelector(".topbar")?.nextSibling);
+      setTimeout(() => tip.remove(), 4000);
+      localStorage.removeItem('cg_pipeline_growth');
+    }
+  } catch(e) {}
+
+
+  ;(() => {
+    const feedbackRoot = document.getElementById("toolFeedback");
+    if (!feedbackRoot) return;
+    const storageKey = "tool_feedback_ab_test_v1";
+    const reasons = { up: ["变量清楚","标准明确","节奏可执行","能沉淀结论"], down: ["变量不清楚","门槛不合理","周期不现实","结论模板弱"] };
+    const $f = (id) => document.getElementById(id);
+    const escapeFeedback = (value) => String(value || "").replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
+    const readFeedback = () => { try { return JSON.parse(localStorage.getItem(storageKey)) || null; } catch { return null; } };
+    const writeFeedback = (payload) => localStorage.setItem(storageKey, JSON.stringify(payload));
+    const notifyFeedback = (message) => {
+      if (typeof showToast === "function") { showToast(message); return; }
+      const existing = document.getElementById("toolFeedbackToast");
+      const toast = existing || document.createElement("div");
+      toast.id = "toolFeedbackToast";
+      toast.textContent = message;
+      toast.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:80;max-width:340px;padding:12px 14px;border:1px solid rgba(15,159,179,.3);border-radius:8px;background:rgba(255,255,255,.97);box-shadow:0 16px 40px rgba(31,45,39,.14);font-size:13px;color:#15211f";
+      if (!existing) document.body.appendChild(toast);
+      clearTimeout(notifyFeedback.timer);
+      notifyFeedback.timer = setTimeout(() => toast.remove(), 2200);
+    };
+    const renderFeedback = (value, reason = "") => {
+      const saved = readFeedback();
+      feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.toolFeedback === value));
+      feedbackRoot.classList.toggle("show-detail", Boolean(value));
+      $f("toolFeedbackQuestion").textContent = value === "up" ? "你最认可哪一点？" : "哪里不够好？";
+      $f("toolFeedbackReasons").innerHTML = (reasons[value] || reasons.down).map((label) => '<button class="tool-feedback-reason' + (label === reason ? ' active' : '') + '" type="button" data-reason="' + escapeFeedback(label) + '">' + escapeFeedback(label) + '</button>').join("");
+      $f("toolFeedbackText").value = saved?.text || "";
+      $f("toolFeedbackNote").textContent = value ? (reason ? "已记录：" + reason : "已记录反馈，可以继续选择原因或写补充说明。") : "";
+    };
+    const saved = readFeedback();
+    if (saved?.value) renderFeedback(saved.value, saved.reason || "");
+    feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const payload = { value: btn.dataset.toolFeedback, reason: "", text: readFeedback()?.text || "", updatedAt: new Date().toISOString() };
+        writeFeedback(payload);
+        renderFeedback(payload.value, payload.reason);
+        notifyFeedback(payload.value === "up" ? "已记录：这个结果有帮助" : "已记录：这个结果没帮助");
+      });
+    });
+    $f("toolFeedbackReasons").addEventListener("click", (event) => {
+      const btn = event.target.closest(".tool-feedback-reason");
+      if (!btn) return;
+      const current = readFeedback() || { value: "down", text: "" };
+      const payload = { ...current, reason: btn.dataset.reason, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason);
+      notifyFeedback("已记录反馈原因：" + payload.reason);
+    });
+    $f("toolFeedbackSaveBtn").addEventListener("click", () => {
+      const current = readFeedback() || { value: "down", reason: "", text: "" };
+      const text = $f("toolFeedbackText").value.trim();
+      const hadText = Boolean((current.text || "").trim());
+      const payload = { ...current, text, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason || "");
+      const message = text ? "已保存补充说明" : hadText ? "已清空补充说明" : "补充说明为空，未保存新内容";
+      $f("toolFeedbackNote").textContent = message;
+      notifyFeedback(message);
+    });
+  })();
+
+</script>
+</body>
+</html>

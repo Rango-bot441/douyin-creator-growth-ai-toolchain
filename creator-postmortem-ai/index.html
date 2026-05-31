@@ -1,0 +1,1987 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creator Postmortem AI｜创作者内容复盘诊断台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f6f8;
+      --panel: #ffffff;
+      --panel-soft: #f8fafb;
+      --ink: #18212f;
+      --muted: #657184;
+      --line: #d9e1e8;
+      --line-strong: #b9c5d1;
+      --black: #101623;
+      --cyan: #0f9fb3;
+      --green: #1e9b5a;
+      --amber: #d88912;
+      --red: #d84a42;
+      --violet: #7654d6;
+      --shadow: 0 18px 44px rgba(24, 33, 47, .09);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        linear-gradient(90deg, rgba(16, 22, 35, .045) 1px, transparent 1px),
+        linear-gradient(rgba(15, 159, 179, .045) 1px, transparent 1px),
+        radial-gradient(circle at 14% 8%, rgba(15, 159, 179, .18), transparent 24rem),
+        radial-gradient(circle at 92% 4%, rgba(216, 137, 18, .18), transparent 24rem),
+        var(--bg);
+      background-size: 34px 34px, 34px 34px, auto, auto, auto;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    h1, h2, h3, p { margin-top: 0; }
+
+    .shell {
+      width: min(1480px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 22px 0 36px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 900;
+      background: linear-gradient(135deg, #101623 0%, #0f9fb3 58%, #d88912 100%);
+      box-shadow: 0 16px 34px rgba(15, 159, 179, .22);
+    }
+
+    h1 {
+      margin-bottom: 2px;
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 14px;
+      color: var(--ink);
+      background: var(--panel);
+      box-shadow: 0 10px 22px rgba(24, 33, 47, .06);
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      box-shadow: 0 14px 28px rgba(24, 33, 47, .10);
+    }
+
+    .btn.primary {
+      border-color: var(--black);
+      color: #fff;
+      background: var(--black);
+    }
+
+    .btn.ghost {
+      background: rgba(255,255,255,.72);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.94);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 10px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248, 250, 251, .86);
+    }
+
+    .panel-head h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .panel-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .form {
+      display: grid;
+      gap: 13px;
+      padding: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 11px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+
+    textarea {
+      min-height: 82px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    #script {
+      min-height: 190px;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(15, 159, 179, .14);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .dashboard {
+      display: grid;
+      gap: 16px;
+    }
+
+    .dashboard.is-empty .source-note,
+    .dashboard.is-empty .metrics,
+    .dashboard.is-empty .analysis-section,
+    .dashboard.is-analyzing .source-note,
+    .dashboard.is-analyzing .metrics,
+    .dashboard.is-analyzing .analysis-section {
+      display: none;
+    }
+
+    .dashboard.is-analyzing .status-dot {
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .btn:disabled {
+      cursor: wait;
+      opacity: .64;
+      transform: none;
+      box-shadow: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: .72; }
+      50% { transform: scale(1.35); opacity: 1; }
+    }
+
+    .hero-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) 300px;
+      gap: 16px;
+      padding: 18px;
+    }
+
+    .diagnosis-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .status-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 999px;
+      background: var(--amber);
+      box-shadow: 0 0 0 7px rgba(216,137,18,.12);
+      flex: 0 0 auto;
+    }
+
+    .diagnosis-title h2 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 40px);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .diagnosis-copy {
+      margin-bottom: 16px;
+      max-width: 820px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0 10px;
+      background: #fff;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .scorebox {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background:
+        linear-gradient(135deg, rgba(16,22,35,.95), rgba(31,48,66,.95)),
+        var(--black);
+      color: #fff;
+    }
+
+    .score-num {
+      margin: 2px 0 8px;
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .scorebox p {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .run-status {
+      margin-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.14);
+      padding-top: 10px;
+      color: rgba(255,255,255,.86);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .source-note {
+      margin-top: 10px;
+      border: 1px solid rgba(15, 159, 179, .22);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #0f6674;
+      background: #eefcff;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.6;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 10px 24px rgba(24, 33, 47, .05);
+    }
+
+    .metric .label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 25px;
+      letter-spacing: 0;
+    }
+
+    .bar {
+      height: 7px;
+      border-radius: 999px;
+      background: #edf1f5;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 50%;
+      border-radius: inherit;
+      background: var(--cyan);
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .section-body {
+      padding: 14px 16px 16px;
+    }
+
+    .issue-list, .action-list, .topic-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .issue, .action, .topic {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .issue {
+      border-left: 5px solid var(--amber);
+    }
+
+    .issue.high { border-left-color: var(--red); }
+    .issue.good { border-left-color: var(--green); }
+    .issue.mid { border-left-color: var(--amber); }
+
+    .item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-weight: 900;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 0 8px;
+      color: #344054;
+      background: #eef2f7;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .issue p, .action p, .topic p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.62;
+      font-size: 13px;
+    }
+
+    .action {
+      background: #f8fafb;
+    }
+
+    .topic {
+      border-color: rgba(15,159,179,.28);
+      background: #f0fbfd;
+    }
+
+    .keyword-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .keyword {
+      min-height: 28px;
+      border: 1px solid rgba(15, 159, 179, .22);
+      border-radius: 999px;
+      padding: 4px 9px;
+      color: #0f6674;
+      background: #eefcff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .script-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .script-card {
+      min-height: 142px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      background: #fff;
+    }
+
+    .script-card strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 15px;
+    }
+
+    .script-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .mini-score {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      padding: 0 8px;
+      color: #0f6674;
+      background: #eefcff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .evidence {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--line);
+      color: #475467;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .empty {
+      padding: 28px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+      background: #fff;
+    }
+
+    @media (max-width: 1120px) {
+      .layout, .hero-panel, .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics, .script-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell { width: min(100% - 18px, 1480px); padding-top: 12px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .actions { width: 100%; justify-content: stretch; }
+      .btn { flex: 1; }
+      .field-grid, .metrics, .script-grid { grid-template-columns: 1fr; }
+      .diagnosis-title h2 { font-size: 26px; }
+      .score-num { font-size: 46px; }
+    }
+
+    /* ── 迭代日志 ── */
+    .changelog {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 2px 8px rgba(24,33,47,.04);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .changelog-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border: none;
+      background: rgba(15,159,179,.05);
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      color: var(--ink);
+      transition: background .16s;
+    }
+
+    .changelog-toggle:hover { background: rgba(15,159,179,.1); }
+
+    .changelog-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .changelog-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--cyan);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .changelog-badge.old {
+      background: var(--line);
+      color: var(--muted);
+    }
+
+    .changelog-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .changelog-caret {
+      font-size: 12px;
+      color: var(--muted);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    .changelog.open .changelog-caret { transform: rotate(180deg); }
+
+    .changelog-body {
+      display: none;
+      padding: 0 16px 16px;
+    }
+
+    .changelog.open .changelog-body { display: block; }
+
+    .changelog-versions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .cl-version {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fff;
+    }
+
+    .cl-version.current { border-color: var(--cyan); background: rgba(15,159,179,.04); }
+
+    .cl-version-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .cl-version-head span { font-size: 12px; color: var(--muted); }
+
+    .cl-list {
+      margin: 0;
+      padding: 0 0 0 16px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .cl-list li.good { color: #1e6e44; }
+    .cl-list li.bad  { color: var(--muted); text-decoration: line-through; opacity: .65; }
+
+    .cl-reason {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(15,159,179,.06);
+      border-left: 3px solid var(--cyan);
+      font-size: 12px;
+      color: #0f6674;
+      line-height: 1.65;
+    }
+
+    .cl-section-title { display: flex; align-items: center; gap: 8px; margin: 16px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .cl-section-title:first-child { margin-top: 4px; }
+    .cl-section-icon { font-size: 14px; }
+    .cl-rival-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .cl-rival-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: rgba(255,255,255,.74); transition: border-color .16s; }
+    .cl-rival-card:hover { border-color: rgba(15,159,179,.34); }
+    .cl-rival-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .cl-rival-icon { font-size: 20px; flex-shrink: 0; }
+    .cl-rival-name { color: var(--ink); font-size: 13px; font-weight: 800; line-height: 1.3; }
+    .cl-rival-label { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; background: rgba(24,33,47,.06); color: var(--muted); font-size: 10px; font-weight: 800; }
+    .cl-rival-list { margin: 0; padding: 0 0 0 16px; color: #4d5969; font-size: 12px; line-height: 1.75; }
+    .cl-rival-list li { margin-bottom: 2px; }
+    .cl-rival-list li.cl-rival-weak { color: var(--muted); opacity: .78; }
+    .cl-innovation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 9px; margin-bottom: 12px; }
+    .cl-inno-card { border: 1px solid rgba(15,159,179,.22); border-radius: 8px; padding: 12px; background: rgba(15,159,179,.045); transition: transform .14s, box-shadow .14s; }
+    .cl-inno-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,159,179,.1); }
+    .cl-inno-icon { margin-bottom: 6px; font-size: 18px; }
+    .cl-inno-title { margin-bottom: 4px; color: var(--ink); font-size: 12px; font-weight: 900; }
+    .cl-inno-desc { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .cl-core-insight { margin-bottom: 8px; padding: 12px 14px; border-left: 3px solid var(--cyan); border-radius: 8px; background: rgba(15,159,179,.065); color: #0f6674; font-size: 12px; line-height: 1.7; }
+    .cl-core-label { margin-bottom: 5px; color: var(--cyan); font-size: 11px; font-weight: 900; letter-spacing: .04em; }
+    .cl-roadmap { position: relative; margin-bottom: 12px; padding-left: 20px; }
+    .cl-roadmap::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; border-radius: 999px; background: linear-gradient(to bottom, var(--cyan), var(--amber)); opacity: .42; }
+    .cl-roadmap-item { position: relative; padding: 8px 0 8px 14px; }
+    .cl-roadmap-dot { position: absolute; left: -17px; top: 12px; width: 8px; height: 8px; border: 2px solid rgba(255,255,255,.92); border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 2px rgba(15,159,179,.25); }
+    .cl-roadmap-title { margin-bottom: 2px; color: var(--ink); font-size: 12px; font-weight: 800; }
+    .cl-roadmap-desc { color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .cl-metric-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border: 1px solid rgba(15,159,179,.18); border-radius: 8px; background: rgba(15,159,179,.05); }
+    .cl-metric-label { flex-shrink: 0; color: var(--cyan); font-size: 11px; font-weight: 900; }
+    .cl-metric-tag { display: inline-flex; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.7); color: var(--muted); font-size: 10px; font-weight: 700; }
+
+    @media (max-width: 720px) {
+      .changelog-versions, .cl-rival-grid { grid-template-columns: 1fr; }
+    }
+
+    /* v2 新增样式 */
+    .version-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--cyan);
+      border-radius: 999px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      background: rgba(15, 159, 179, .08);
+    }
+
+    .bm-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 7px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--line);
+      font-size: 11px;
+    }
+
+    .bm-ref { color: var(--muted); }
+    .bm-delta { font-weight: 900; }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .compare-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 5px;
+    }
+
+    .compare-card.is-total {
+      border-color: var(--cyan);
+      background: rgba(15, 159, 179, .05);
+    }
+
+    .compare-lbl { color: var(--muted); font-size: 11px; font-weight: 800; }
+    .compare-vals { font-size: 14px; }
+    .compare-vals b { font-size: 17px; }
+    .compare-delta { font-size: 13px; font-weight: 900; }
+
+    .iter-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid rgba(15, 159, 179, .22);
+      border-radius: 8px;
+      background: rgba(15, 159, 179, .05);
+      color: #0f6674;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .iter-banner b { font-weight: 900; }
+
+    @media (max-width: 1120px) {
+      .compare-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 720px) {
+      .compare-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    /* ── 全链路导航条 ── */
+    .pipeline-nav {
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius, 8px);
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 2px 8px rgba(24,33,47,.04);
+      overflow: hidden;
+    }
+
+    .pipeline-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+
+    .pipeline-label {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--muted, #657184);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .pipeline-steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .pipeline-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted, #657184);
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all .16s;
+      white-space: nowrap;
+    }
+
+    a.pipeline-step:hover {
+      border-color: var(--line, #d9e1e8);
+      color: var(--ink, #18212f);
+      background: rgba(255,255,255,.8);
+    }
+
+    .pipeline-step.ps-current {
+      background: var(--cyan, #0f9fb3);
+      color: #fff;
+      border-color: var(--cyan, #0f9fb3);
+    }
+
+    .ps-num { opacity: .7; font-size: 11px; }
+
+    .ps-arrow {
+      color: var(--muted, #657184);
+      font-size: 11px;
+      opacity: .5;
+    }
+
+    .pipeline-insight {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan, #0f9fb3);
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    @media (max-width: 720px) {
+      .pipeline-insight { display: none; }
+      .pipeline-inner { gap: 8px; }
+      .pipeline-steps { min-width: 0; overflow-x: auto; padding-bottom: 2px; }
+      .pipeline-step { flex: 0 0 auto; }
+    }
+  
+
+    /* lightweight user feedback */
+    .tool-feedback{margin:12px 0 2px;padding:12px;border:1px solid rgba(15,159,179,.22);border-radius:8px;background:rgba(255,255,255,.72);font-size:12px;line-height:1.6;color:var(--muted, #65736f)}
+    .tool-feedback-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .tool-feedback-title{color:var(--ink, var(--text, #15211f));font-size:13px;font-weight:900}
+    .tool-feedback-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .tool-feedback-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:#fff;color:var(--muted, #65736f);font-size:12px;font-weight:900;transition:all .16s}
+    .tool-feedback-btn:hover{border-color:rgba(15,159,179,.38);color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));background:rgba(15,159,179,.06)}
+    .tool-feedback-btn.active{border-color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));color:#fff;background:var(--brand, var(--accent, var(--cyan, #0f9fb3)));box-shadow:0 8px 18px rgba(15,159,179,.16)}
+    .tool-feedback-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line, var(--line-soft, #d6e0de))}
+    .tool-feedback.show-detail .tool-feedback-detail{display:block}
+    .tool-feedback-question{margin-bottom:8px;color:var(--muted, #65736f);font-weight:800}
+    .tool-feedback-reasons{display:flex;gap:7px;flex-wrap:wrap}
+    .tool-feedback-reason{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:rgba(255,255,255,.74);color:var(--muted, #65736f);font-size:11px;font-weight:850}
+    .tool-feedback-reason:hover{border-color:rgba(15,159,179,.36);color:var(--ink, var(--text, #15211f))}
+    .tool-feedback-reason.active{border-color:rgba(22,122,90,.45);color:var(--green, #167a5a);background:rgba(22,122,90,.08)}
+    .tool-feedback-input{width:100%;margin-top:10px;min-height:72px;resize:vertical;background:#fff;font-size:12px;line-height:1.55}
+    .tool-feedback-save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+    .tool-feedback-note{color:var(--green, #167a5a);font-size:11px;font-weight:850}
+    .tool-feedback-save{min-height:28px;padding:0 11px;font-size:11px}
+
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Creator Postmortem AI</h1>
+          <p>聚焦单条内容复盘：回答“为什么没跑出来”，并把失败原因翻译成下一条可验证假设</p>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="version-tag">v3.0 · 动态置信度 + 评论联动选题</span>
+        <button class="btn ghost" id="historyBtn" type="button">历史记录</button>
+        <button class="btn ghost" id="sampleBtn" type="button">换一个样例</button>
+        <button class="btn primary" id="diagnoseTopBtn" type="button">分析诊断</button>
+      </div>
+    </header>
+
+    <!-- 完整链路导航 -->
+    <nav class="pipeline-nav" aria-label="创作者增长闭环">
+      <div class="pipeline-inner">
+        <span class="pipeline-label">创作者增长闭环</span>
+        <div class="pipeline-steps">
+          <a class="pipeline-step" href="../inspiration-station/index.html"><span class="ps-num">①</span><span class="ps-name">选题</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../content-safety-copilot/index.html"><span class="ps-num">②</span><span class="ps-name">创作合规</span></a>
+          <span class="ps-arrow">→</span>
+          <span class="pipeline-step ps-current" aria-current="step"><span class="ps-num">③</span><span class="ps-name">复盘诊断</span></span>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../creatorinsight-ai/index.html"><span class="ps-num">④</span><span class="ps-name">增长规划</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../ab-test-designer/index.html"><span class="ps-num">⑤</span><span class="ps-name">实验验证</span></a>
+          <span class="ps-arrow" style="opacity:.25">·</span>
+          <a class="pipeline-step" href="../prd-copilot/index.html"><span class="ps-num">+</span><span class="ps-name">PRD方案化</span></a>
+          <a class="pipeline-step" href="../launcher.html"><span class="ps-name">返回合集</span></a>
+        </div>
+        <span class="pipeline-insight">💡 本页解决“为什么没跑出来”，把表现问题拆成可验证假设。</span>
+      </div>
+    </nav>
+
+    <!-- 迭代日志 + 竞品调研 -->
+    <div class="changelog" id="changelog">
+      <button class="changelog-toggle" id="changelogToggle" type="button" aria-expanded="false">
+        <div class="changelog-toggle-left">
+          <span class="changelog-badge">v3.0</span>
+          <span class="changelog-title">竞品对比 · 创新点 · 优化方向</span>
+        </div>
+        <span class="changelog-caret">▼</span>
+      </button>
+      <div class="changelog-body">
+        <div class="cl-section-title"><span class="cl-section-icon">📊</span>市面竞品现状</div>
+        <div class="cl-rival-grid">
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">📈</span><div><div class="cl-rival-name">飞瓜数据</div><span class="cl-rival-label">数据平台</span></div></div><ul class="cl-rival-list"><li>强在达人、商品、直播和行业榜单，适合看大盘机会</li><li class="cl-rival-weak">个人创作者看完数据仍要自己判断“下一条怎么改”</li><li class="cl-rival-weak">对单条作品脚本结构和评论信号的解释较弱</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🧮</span><div><div class="cl-rival-name">蝉妈妈</div><span class="cl-rival-label">商业数据</span></div></div><ul class="cl-rival-list"><li>强在电商转化、达人监控、竞品账号和商品数据</li><li class="cl-rival-weak">更适合投放和带货团队，不是单条内容复盘教练</li><li class="cl-rival-weak">依赖真实数据接入，学习成本和使用门槛更高</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">📰</span><div><div class="cl-rival-name">新榜 / 公众号数据工具</div><span class="cl-rival-label">榜单洞察</span></div></div><ul class="cl-rival-list"><li>擅长内容趋势、账号排行和跨平台观察</li><li class="cl-rival-weak">输出偏宏观观察，较少直接生成下一条实验假设</li><li class="cl-rival-weak">对短视频完播、互动、评论反馈的联动不足</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🎵</span><div><div class="cl-rival-name">抖音创作者中心</div><span class="cl-rival-label">官方数据</span></div></div><ul class="cl-rival-list"><li>提供官方作品表现、粉丝画像和基础增长建议</li><li class="cl-rival-weak">更像数据看板，不会把失败原因翻译成可执行变量</li><li class="cl-rival-weak">缺少跨作品复盘方法论和假设沉淀</li></ul></div>
+        </div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">💡</span>我们的创新点</div>
+        <div class="cl-innovation-grid">
+          <div class="cl-inno-card"><div class="cl-inno-icon">🎚️</div><div class="cl-inno-title">账号阶段定优先级</div><div class="cl-inno-desc">冷启动、成长期、腰部账号使用不同复盘口径，避免给错建议</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">📏</div><div class="cl-inno-title">行业基准参照</div><div class="cl-inno-desc">把完播、互动、转粉放到垂类基准里看，减少单条数据误判</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">🧩</div><div class="cl-inno-title">脚本结构拆解</div><div class="cl-inno-desc">从开头钩子、信息密度、节奏和 CTA 解释内容表现</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">💬</div><div class="cl-inno-title">评论信号联动</div><div class="cl-inno-desc">评论出现“求模板”时，自动转成资源型下一条选题建议</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">🧪</div><div class="cl-inno-title">假设化输出</div><div class="cl-inno-desc">复盘不是给结论，而是沉淀下一条可验证的内容实验假设</div></div>
+        </div>
+        <div class="cl-core-insight"><div class="cl-core-label">核心判断</div>飞瓜 / 蝉妈妈适合看行业盘面和账号监控，但个人创作者真正卡在“这条为什么不行，下一条先改什么”。所以本工具不做大盘看板，而做单条内容复盘教练。</div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">🚀</span>后续优化方向</div>
+        <div class="cl-roadmap">
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">接入账号作品表现</div><div class="cl-roadmap-desc">用真实播放、完播、互动、转粉数据替换当前模拟输入</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">LLM 拆解脚本和评论语义</div><div class="cl-roadmap-desc">识别隐含情绪、争议点、未满足需求和可复用表达结构</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">复盘结论资产化</div><div class="cl-roadmap-desc">把每次有效结论沉淀为账号专属变量库</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">自动流转到 A/B 实验</div><div class="cl-roadmap-desc">一键把“下一条假设”送到实验设计助手生成验证方案</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">跨作品趋势复核</div><div class="cl-roadmap-desc">对比多次诊断，判断优化方向是否真的带来提升</div></div></div>
+        </div>
+        <div class="cl-metric-bar"><span class="cl-metric-label">🎯 验证指标</span><span class="cl-metric-tag">复盘结论采纳率</span><span class="cl-metric-tag">下条内容指标提升</span><span class="cl-metric-tag">假设命中率</span><span class="cl-metric-tag">历史复盘复用率</span></div>
+      </div>
+    </div>
+
+    <main class="layout">
+      <aside class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>视频脚本与数据录入</h2>
+            <p>用模拟数据即可演示完整复盘链路。</p>
+          </div>
+        </div>
+        <form class="form" id="postForm">
+          <label>
+            视频标题
+            <input id="title" value="3个方法让新手剪辑效率翻倍" maxlength="80">
+          </label>
+
+          <label>
+            视频脚本 / 口播文案
+            <textarea id="script" maxlength="1200">你是不是每次剪视频都要花三四个小时？其实新手最慢的不是剪辑，而是每次都从零开始想结构。今天给你3个方法。第一，先建一个固定素材库，把开头、转场、字幕样式都存好。第二，把常用脚本拆成问题、方法、案例三段。第三，每条视频只改一个变量，比如标题或者开头。最后我会把这个剪辑模板清单放在评论区，想要的可以留言"模板"。</textarea>
+            <span class="hint">建议粘贴真实口播稿、分镜文案或字幕稿；系统会分析开头钩子、结构、信息密度、互动话术和转粉承诺。</span>
+          </label>
+
+          <label>
+            封面文案
+            <input id="cover" value="新手剪辑效率翻倍" maxlength="40">
+          </label>
+
+          <div class="field-grid">
+            <label>
+              账号阶段
+              <select id="accountStage">
+                <option>新手期</option>
+                <option selected>成长期</option>
+                <option>腰部账号</option>
+                <option>成熟期</option>
+              </select>
+            </label>
+            <label>
+              粉丝量级
+              <select id="fanRange">
+                <option>0-1000</option>
+                <option selected>1000-5万</option>
+                <option>5万-50万</option>
+                <option>50万以上</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              播放量
+              <input id="views" type="number" min="0" value="12800">
+            </label>
+            <label>
+              平均完播率 %
+              <input id="completion" type="number" min="0" max="100" step="0.1" value="23.5">
+            </label>
+            <label>
+              互动率 %
+              <input id="engagement" type="number" min="0" max="100" step="0.1" value="2.1">
+            </label>
+            <label>
+              涨粉率 %
+              <input id="follow" type="number" min="0" max="100" step="0.01" value="0.18">
+            </label>
+          </div>
+
+          <label>
+            评论关键词
+            <input id="comments" value="太快了,看不懂,模板在哪,适合小白,求案例">
+            <span class="hint">用逗号分隔，例如：太快了,模板在哪,求案例</span>
+          </label>
+
+          <label>
+            内容类型
+            <select id="category">
+              <option>知识教程</option>
+              <option>AI 工具</option>
+              <option>创作者成长</option>
+              <option>账号运营</option>
+              <option>商业财经</option>
+              <option>教育学习</option>
+              <option>心理情绪</option>
+              <option>健康科普</option>
+              <option>美妆穿搭</option>
+              <option>好物测评</option>
+              <option>生活记录</option>
+              <option>职场成长</option>
+              <option>探店种草</option>
+              <option>其他</option>
+            </select>
+          </label>
+
+          <button class="btn primary" id="submitDiagnoseBtn" type="submit">分析诊断</button>
+        </form>
+      </aside>
+
+      <section class="dashboard">
+        <section class="panel hero-panel">
+          <div>
+            <div class="diagnosis-title">
+              <span class="status-dot" id="statusDot"></span>
+              <h2 id="diagnosisTitle">等待诊断</h2>
+            </div>
+            <p class="diagnosis-copy" id="diagnosisCopy">点击"开始诊断"后，系统会先拆解脚本结构，再结合完播、互动、转粉数据生成归因假设。</p>
+            <div class="chips" id="chips"></div>
+          </div>
+          <div class="scorebox">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span>内容健康度</span>
+              <span id="iterCount" style="font-size:11px;color:rgba(255,255,255,.5)"></span>
+            </div>
+            <div class="score-num" id="score">--</div>
+            <p id="scoreText">输入视频信息后点击「分析诊断」，系统会结合行业基准数据生成归因报告。</p>
+            <div class="run-status" id="runStatus">尚未生成。填写左侧信息后，点击「生成 AI 复盘诊断」查看分析。</div>
+          </div>
+        </section>
+
+        <div class="source-note" id="sourceNote" style="display:none">
+          已与行业基准对比（同垂类账号 30 日中位数）。归因结论综合了脚本结构、标题封面、完播、互动与涨粉信号，带置信度的假设供单变量迭代参考。
+        </div>
+
+        <section class="panel analysis-section" id="benchmarkSection" style="display:none">
+          <div class="panel-head">
+            <div>
+              <h2>行业基准对比</h2>
+              <p>同垂类账号 30 日中位数 · 定位你在行业里的真实位置</p>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="compare-grid" id="compareGrid"></div>
+            <div class="iter-banner" id="iterBanner" style="margin-top:12px;display:none">
+              📈 <span id="iterBannerText"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="metrics" id="metrics"></section>
+
+        <section class="panel analysis-section">
+          <div class="panel-head">
+            <div>
+              <h2>脚本结构分析</h2>
+              <p>从视频文案里提取可解释证据，避免只凭数据下结论。</p>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="script-grid" id="scriptInsights"></div>
+          </div>
+        </section>
+
+        <section class="content-grid analysis-section">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>归因假设</h2>
+                <p>每条结论都带置信度和判断依据。</p>
+              </div>
+            </div>
+            <div class="section-body">
+              <ul class="issue-list" id="issues"></ul>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>优化动作</h2>
+                <p>把归因翻译成下一条能执行的改法。</p>
+              </div>
+            </div>
+            <div class="section-body">
+              <ul class="action-list" id="actions"></ul>
+            </div>
+          </section>
+        </section>
+
+        <section class="content-grid analysis-section">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>下条选题建议</h2>
+                <p>沿着已验证的人群需求继续迭代。</p>
+              </div>
+            </div>
+            <div class="section-body">
+              <ul class="topic-list" id="topics"></ul>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>评论关键词信号</h2>
+                <p>从用户反馈里提炼内容机会。</p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="keyword-cloud" id="keywords"></div>
+            </div>
+          </section>
+        </section>
+        
+        <div class="tool-feedback" id="toolFeedback" data-tool-feedback-key="postmortem">
+          <div class="tool-feedback-head">
+            <div>
+              <div class="tool-feedback-title">这个复盘诊断对你有帮助吗？</div>
+              <div style="margin-top:3px">用于判断归因假设和优化动作是否真的能指导下一条内容。</div>
+            </div>
+            <div class="tool-feedback-actions" aria-label="结果反馈">
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="up">👍 有帮助</button>
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="down">👎 没帮助</button>
+            </div>
+          </div>
+          <div class="tool-feedback-detail">
+            <div class="tool-feedback-question" id="toolFeedbackQuestion">哪里不够好？</div>
+            <div class="tool-feedback-reasons" id="toolFeedbackReasons"></div>
+            <textarea class="tool-feedback-input" id="toolFeedbackText" placeholder="也可以直接写一句具体反馈，例如：诊断方向对，但优化动作还可以再具体一点。"></textarea>
+            <div class="tool-feedback-save-row">
+              <div class="tool-feedback-note" id="toolFeedbackNote"></div>
+              <button class="btn ghost tool-feedback-save" id="toolFeedbackSaveBtn" type="button">保存补充说明</button>
+            </div>
+          </div>
+        </div>
+        <section class="panel analysis-section">
+          <div class="section-body" style="font-size:13px;line-height:1.75;color:var(--muted)">
+            <strong style="display:block;color:var(--ink);font-size:15px;margin-bottom:4px">下一步动作</strong>
+            本页只负责解释单条内容的成败原因。把“优化动作”和“下条选题建议”带到增长规划助手，再生成下周优先级和 7 天执行计划。
+            <a href="../creatorinsight-ai/index.html" style="display:inline-flex;margin-top:8px;color:var(--accent);font-weight:900;text-decoration:none">去增长规划 →</a>
+          </div>
+        </section>
+        <section class="panel analysis-section">
+          <div class="section-body" style="font-size:13px;line-height:1.75;color:var(--muted)">
+            <strong style="display:block;color:var(--ink);font-size:15px;margin-bottom:4px">核心指标</strong>
+            复盘结论采纳率 · 归因假设命中率 · 下条内容指标提升 · 历史复盘复用率。
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    /* ── 行业基准数据（同垂类 30 日中位数）── */
+    const BENCHMARKS = {
+      "知识教程":      { completion: 34, engagement: 3.2, follow: 0.28, views: 18000, health: 62 },
+      "AI 工具":       { completion: 29, engagement: 2.8, follow: 0.31, views: 14000, health: 60 },
+      "创作者成长":    { completion: 36, engagement: 3.8, follow: 0.42, views: 12000, health: 64 },
+      "账号运营":      { completion: 31, engagement: 3.1, follow: 0.35, views: 11000, health: 61 },
+      "商业财经":      { completion: 26, engagement: 2.4, follow: 0.22, views: 22000, health: 57 },
+      "教育学习":      { completion: 32, engagement: 3.4, follow: 0.38, views: 16000, health: 62 },
+      "心理情绪":      { completion: 41, engagement: 4.6, follow: 0.52, views: 20000, health: 68 },
+      "健康科普":      { completion: 38, engagement: 3.9, follow: 0.44, views: 24000, health: 65 },
+      "美妆穿搭":      { completion: 44, engagement: 5.2, follow: 0.61, views: 35000, health: 70 },
+      "好物测评":      { completion: 40, engagement: 4.8, follow: 0.55, views: 28000, health: 67 },
+      "生活记录":      { completion: 38, engagement: 4.2, follow: 0.48, views: 19000, health: 66 },
+      "职场成长":      { completion: 33, engagement: 3.5, follow: 0.40, views: 15000, health: 63 },
+      "探店种草":      { completion: 42, engagement: 4.5, follow: 0.58, views: 30000, health: 68 },
+      "其他":          { completion: 32, engagement: 3.0, follow: 0.35, views: 15000, health: 61 }
+    };
+
+    const HISTORY_KEY = "cp_ai_history_v2";
+    const MAX_HISTORY = 10;
+
+    const samples = [
+      {
+        title: "普通人做小红书，前7天别急着发作品",
+        script: "你是不是也想做小红书，但第一周就卡住了？先别急着发作品。普通人起号最容易错的，是一上来就日更，却没有定位。第一步，先写清楚你服务谁，比如职场新人、宝妈还是本地探店用户。第二步，拆10条同领域爆款，看它们的标题、封面和评论区问题。第三步，整理20个选题，只拍其中最具体的3个。评论区我放了一份新手7天起号清单，想要可以留言「清单」。接下来我会连续拆解定位、选题和复盘。",
+        cover: "新手7天起号清单",
+        views: 38600,
+        completion: 41.2,
+        engagement: 5.8,
+        follow: 0.72,
+        comments: "终于讲明白了,求清单,适合新手,定位怎么做,收藏了",
+        category: "职场成长"
+      },
+      {
+        title: "人均50以内，这家火锅真的值",
+        script: "今天带大家去一家开了8年的老火锅，人均50以内，但锅底是真材实料。进门先看汤底，骨汤熬了6小时，颜色奶白不浑浊。毛肚15秒，鸭肠8秒，时间到了夹出来，口感刚好。最值的是他家的午市套餐，两人份只要88，含锅底和4个荤菜。评论区我放了地址和点单攻略，想去的可以收藏。",
+        cover: "人均50火锅点单攻略",
+        views: 61200,
+        completion: 52.4,
+        engagement: 8.3,
+        follow: 1.1,
+        comments: "求地址,收藏了,下次去,好便宜,真的值吗",
+        category: "探店种草"
+      }
+    ];
+    let sampleIndex = 0;
+
+    const fields = ["title", "script", "cover", "views", "completion", "engagement", "follow", "comments", "category", "accountStage", "fanRange"];
+    const $ = id => document.getElementById(id);
+    let analysisTimer = null;
+
+    const metricConfig = [
+      { key: "topic", label: "选题吸引力", unit: "分" },
+      { key: "packaging", label: "标题封面", unit: "分" },
+      { key: "completion", label: "完播质量", unit: "分" },
+      { key: "engagement", label: "互动质量", unit: "分" }
+    ];
+
+    /* ── 历史记录 ── */
+    function loadHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+      catch { return []; }
+    }
+
+    function saveToHistory(record) {
+      const history = loadHistory();
+      history.unshift(record);
+      if (history.length > MAX_HISTORY) history.pop();
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+
+    function showHistoryModal() {
+      const history = loadHistory();
+      if (!history.length) {
+        alert("暂无历史记录。完成一次诊断后，结果会自动保存到本地。");
+        return;
+      }
+      const existing = document.getElementById("histModal");
+      if (existing) existing.remove();
+
+      const modal = document.createElement("div");
+      modal.id = "histModal";
+      modal.style.cssText = "position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:rgba(16,22,35,.62);backdrop-filter:blur(4px)";
+
+      const box = document.createElement("div");
+      box.style.cssText = "background:#fff;border-radius:12px;box-shadow:0 32px 80px rgba(16,22,35,.22);width:min(800px,96vw);max-height:86vh;overflow:auto;padding:24px";
+      box.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2 style="margin:0;font-size:20px">历史诊断记录</h2>
+          <button id="closeHistBtn" style="border:none;background:none;font-size:20px;cursor:pointer;color:#657184">✕</button>
+        </div>
+        <p style="margin:0 0 16px;color:#657184;font-size:13px">最近 ${history.length} 次诊断（本地存储，最多保留 ${MAX_HISTORY} 条）</p>
+        <div style="display:grid;gap:10px">
+          ${history.map((r, i) => {
+            const bm = BENCHMARKS[r.category] || BENCHMARKS["其他"];
+            const delta = r.health - bm.health;
+            const color = delta > 0 ? "#1e9b5a" : delta < 0 ? "#d84a42" : "#657184";
+            return `
+              <div style="border:1px solid #d9e1e8;border-radius:8px;padding:14px;background:#f8fafb">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+                  <strong style="font-size:15px">${r.title || "（无标题）"}</strong>
+                  <span style="font-size:11px;color:#657184;white-space:nowrap">${r.time}</span>
+                </div>
+                <div style="display:flex;gap:16px;font-size:13px;flex-wrap:wrap">
+                  <span>健康度 <b>${r.health}</b> <span style="color:${color}">（${delta > 0 ? "+" : ""}${delta} vs 行业）</span></span>
+                  <span>完播 ${r.completion}% · 互动 ${r.engagement}% · 涨粉 ${r.follow}%</span>
+                  <span style="color:#657184">${r.category}</span>
+                </div>
+                ${r.topIssue ? `<div style="margin-top:8px;font-size:13px;color:#344054">主要问题：${r.topIssue}</div>` : ""}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+      modal.appendChild(box);
+      document.body.appendChild(modal);
+      document.getElementById("closeHistBtn").addEventListener("click", () => modal.remove());
+      modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
+    }
+
+    /* ── 表单 / 分析 ── */
+    function getFormData() {
+      return {
+        title: $("title").value.trim(),
+        script: $("script").value.trim(),
+        cover: $("cover").value.trim(),
+        views: Number($("views").value || 0),
+        completion: Number($("completion").value || 0),
+        engagement: Number($("engagement").value || 0),
+        follow: Number($("follow").value || 0),
+        comments: $("comments").value.trim(),
+        category: $("category").value,
+        accountStage: $("accountStage").value,
+        fanRange: $("fanRange").value
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function analyzeScript(script) {
+      const text = script || "";
+      const sentences = text.split(/[。！？!?；;\n]+/).map(s => s.trim()).filter(Boolean);
+      const opening = sentences.slice(0, 2).join("。");
+      const mid = sentences.slice(Math.floor(sentences.length * .3), Math.floor(sentences.length * .7)).join("。");
+      const closing = sentences.slice(-2).join("。");
+
+      // ── 开头钩子（多类型识别）
+      const hasQuestionHook = /你是不是|有没有|为什么|凭什么|别急|别再|如果你|是不是|怎么才/.test(opening);
+      const hasWarnHook = /千万|警惕|别做|危险|必须|停止|错误|最大的坑/.test(opening);
+      const hasDataHook = /\d+%|\d+万|\d+年|\d+天|研究|调查|数据|发现/.test(opening);
+      const hasStoryHook = /我|有一天|那年|那次|亲身|经历|当时/.test(opening) && opening.length < 50;
+      const hasPain = /卡住|太慢|没人看|不会|焦虑|踩坑|浪费|看不懂|没效果|最容易错|做不到|搞不定/.test(text);
+      const openingTooLong = opening.length > 80;
+      const hookType = hasWarnHook ? "警示规避" : hasDataHook ? "数据冲击" : hasStoryHook ? "个人故事" : hasQuestionHook ? "悬念提问" : "信息陈述";
+
+      // ── 内容结构
+      const hasNumbers = /[0-9一二三四五六七八九十]+/.test(text);
+      const hasSteps = /第一|第二|第三|步骤|先|然后|最后|第[一二三四五六七八九十0-9]|Step/.test(text);
+      const hasContrast = /对比|VS|vs|相比|区别|不同|比.*更|前.*后/.test(mid);
+      const hasCase = /案例|真实|比如|举个例子|我把|实测|亲测/.test(text);
+      const hasCausal = /因为|所以|导致|原因是|结果.*是|才能/.test(mid);
+      const structureType = hasSteps ? "步骤拆解" : hasContrast ? "对比论证" : hasCausal ? "因果分析" : hasCase ? "案例驱动" : "叙事递进";
+      const infoDensity = clamp(Math.round(text.length / Math.max(sentences.length || 1, 1)), 8, 80);
+      const densityLabel = infoDensity > 55 ? "偏高（建议压缩句子）" : infoDensity < 18 ? "偏低（信息量不足）" : "适中";
+
+      // ── 情绪价值
+      const hasEmotion = /崩溃|震惊|哭了|感动|愤怒|惊讶|离谱|绝了|太牛了|没想到/.test(text);
+      const hasShared = /我们|一起|大家都|很多人|你也|你有没有/.test(text);
+      const emotionScore = clamp((hasEmotion ? 40 : 10) + (hasShared ? 30 : 10) + (hasPain ? 20 : 5), 10, 100);
+
+      // ── 互动设计
+      const hasExplicitAction = /评论区|留言|扣[0-9一]|私信|想要.*回复|告诉我|你来选/.test(text);
+      const hasQuestion = /[？?]/.test(closing);
+      const hasLowBarAction = /扣\d|打\d|回复.*数字|评论.*字/.test(text);
+      const hasChoiceQuestion = /还是|A.*B|1.*2|先.*还是/.test(closing);
+      const interactionDepth = hasLowBarAction ? "高（低门槛数字互动）" : hasChoiceQuestion ? "高（选择题引导）" : hasExplicitAction ? "中（明确引导）" : hasQuestion ? "低（仅有疑问）" : "无";
+
+      // ── 转粉承诺
+      const hasFollowPromise = /关注|系列|下一期|接下来|持续|每天|连续|持续更新/.test(text);
+      const hasValueClaim = /专门|我会一直|只做.*内容|我的账号/.test(text);
+      const conversionDepth = hasValueClaim ? "强（账号价值定位）" : hasFollowPromise ? "中（系列内容承诺）" : "弱（未建立关注理由）";
+
+      // ── 脚本长度与完整性
+      const wordCount = text.replace(/\s/g, "").length;
+      const isShort = wordCount < 80;
+      const hasOpening = sentences.length >= 1;
+      const hasBody = sentences.length >= 3;
+      const hasClosing = sentences.length >= 5;
+
+      // ── 各维度评分
+      const hookScore = clamp(
+        (hasQuestionHook || hasWarnHook ? 40 : hasDataHook || hasStoryHook ? 32 : 14)
+        + (hasPain ? 28 : 8)
+        + (hasNumbers ? 15 : 0)
+        + (openingTooLong ? -12 : 8)
+        + (isShort ? -10 : 0), 10, 100);
+
+      const structureScore = clamp(
+        (hasSteps ? 40 : hasContrast ? 32 : hasCase ? 26 : hasCausal ? 22 : 14)
+        + (hasCase ? 18 : 5)
+        + (sentences.length >= 5 ? 16 : 5)
+        + (infoDensity >= 18 && infoDensity <= 50 ? 12 : -6)
+        + (hasBody ? 10 : 0), 10, 100);
+
+      const interactionScore = clamp(
+        (hasLowBarAction ? 55 : hasChoiceQuestion ? 50 : hasExplicitAction ? 38 : hasQuestion ? 22 : 12)
+        + (hasEmotion ? 18 : 5)
+        + (/问题|模板|清单/.test(text) ? 12 : 0), 10, 100);
+
+      const conversionScore = clamp(
+        (hasValueClaim ? 72 : hasFollowPromise ? 52 : 16)
+        + (/系列|连续|下一期|接下来/.test(text) ? 20 : 0)
+        + (emotionScore > 60 ? 8 : 0), 10, 100);
+
+      return {
+        sentences, opening: opening || "未识别到明确开头",
+        hookScore: Math.round(hookScore), hookType,
+        structureScore: Math.round(structureScore), structureType,
+        interactionScore: Math.round(interactionScore), interactionDepth,
+        conversionScore: Math.round(conversionScore), conversionDepth,
+        infoDensity, densityLabel, emotionScore: Math.round(emotionScore),
+        wordCount, isShort,
+        hasQuestionHook, hasWarnHook, hasDataHook, hasStoryHook,
+        hasPain, hasSteps, hasContrast, hasCase, hasInteraction: hasExplicitAction, hasFollowPromise
+      };
+    }
+
+    function scoreVideo(data, scriptAnalysis) {
+      const titleScore = clamp((data.title.length / 22) * 70 + /[0-9一二三四五六七八九十]/.test(data.title) * 14 + /清单|方法|避坑|模板|复盘|新手|案例/.test(data.title) * 16, 18, 100);
+      const coverScore = clamp((data.cover.length / 12) * 58 + /新手|清单|避坑|模板|别|前|后/.test(data.cover) * 24 + (data.cover.length <= 14 ? 14 : -8), 16, 100);
+      const topicScore = clamp(Math.log10(Math.max(data.views, 1)) * 16 + /新手|普通人|小白|真实|案例|清单/.test(data.script + data.title) * 11 + scriptAnalysis.hookScore * .16, 20, 100);
+      const completionScore = clamp(data.completion * 1.55 + scriptAnalysis.structureScore * .28 + scriptAnalysis.hookScore * .12, 8, 100);
+      const engagementScore = clamp(data.engagement * 10.5 + scriptAnalysis.interactionScore * .34, 8, 100);
+      const followScore = clamp(data.follow * 58 + scriptAnalysis.conversionScore * .42, 6, 100);
+      const packagingScore = Math.round((titleScore + coverScore) / 2);
+      const total = Math.round(topicScore * .2 + packagingScore * .18 + completionScore * .24 + engagementScore * .18 + followScore * .2);
+      return { topic: Math.round(topicScore), packaging: Math.round(packagingScore), completion: Math.round(completionScore), engagement: Math.round(engagementScore), follow: Math.round(followScore), total };
+    }
+
+    function getStageProfile(data) {
+      const stageMap = {
+        "新手期": { label: "新手期", priority: "先验证定位和人群是否清晰", watch: "播放稳定性、评论问题、关注理由", minViews: 3000 },
+        "成长期": { label: "成长期", priority: "找到可复制的内容结构和爆款变量", watch: "完播率、收藏率、转粉率", minViews: 10000 },
+        "腰部账号": { label: "腰部账号", priority: "从单条爆款转向系列化栏目", watch: "系列复看、粉丝评论质量、选题复用率", minViews: 50000 },
+        "成熟期": { label: "成熟期", priority: "稳定内容资产，降低单条波动风险", watch: "栏目矩阵、商业转化、老粉互动", minViews: 150000 }
+      };
+      const fanMap = {
+        "0-1000": "冷启动样本小，不能只看单条播放，要重点看评论里有没有真实需求。",
+        "1000-5万": "进入成长期，单条内容要承担定位验证和涨粉转化两件事。",
+        "5万-50万": "已具备受众基础，复盘要关注系列化和老粉互动，而不是只追单条爆款。",
+        "50万以上": "成熟账号需要控制内容波动，优先维护栏目资产和商业信任。"
+      };
+      const profile = stageMap[data.accountStage] || stageMap["成长期"];
+      return { ...profile, fanNote: fanMap[data.fanRange] || fanMap["1000-5万"] };
+    }
+
+    function diagnose(data) {
+      const sa = analyzeScript(data.script);  // scriptAnalysis alias
+      const scores = scoreVideo(data, sa);
+      const bm = BENCHMARKS[data.category] || BENCHMARKS["其他"];
+      const stageProfile = getStageProfile(data);
+      const issues = [];
+      const actions = [];
+
+      issues.push({ level: "mid", title: `${stageProfile.label}复盘口径 · ${stageProfile.priority}`, confidence: 72,
+        text: `${stageProfile.fanNote} 本次不要只判断「这条好不好」，更要判断它是否验证了当前阶段的核心问题：${stageProfile.priority}。`,
+        evidence: `账号阶段：${data.accountStage}；粉丝量级：${data.fanRange}；重点观察：${stageProfile.watch}` });
+
+      // ── 归因1：选题入口（播放 + 钩子类型综合判断）
+      const viewsVsBm = data.views / bm.views;
+      if (scores.topic < 52 || viewsVsBm < 0.5) {
+        const hookDiag = sa.hookType === "信息陈述"
+          ? `开头是"信息陈述型"（"${sa.opening.slice(0,28)}…"），缺少触发用户停留的情绪/问题/数据信号。`
+          : `开头钩子类型为"${sa.hookType}"，但播放量（${data.views.toLocaleString()}）仍低于行业中位数（${bm.views.toLocaleString()}）${Math.round((1-viewsVsBm)*100)}%。`;
+        issues.push({ level: "high", title: "分发入口偏弱 · 选题或标题需要强化", confidence: 76,
+          text: `播放量明显低于同垂类基准，说明推荐系统没能给内容足够的初始流量，或者点击转化率不足。${hookDiag} 建议优先优化标题和封面，而不是内容本身。`,
+          evidence: `播放 ${data.views.toLocaleString()} vs 行业中位 ${bm.views.toLocaleString()}；钩子类型：${sa.hookType}；选题分 ${scores.topic}` });
+        actions.push(["改写标题测试两个版本", `A版：人群标签 + 痛点（「${data.category}新手最容易忽视的3个问题」）；B版：结果导向（「用这个方法，${data.category}效果直接翻倍」）。对比点击率判断哪个方向适合你的账号。`]);
+      } else if (viewsVsBm >= 1.3) {
+        issues.push({ level: "good", title: "选题入口强，分发顺畅", confidence: 81,
+          text: `播放量高于同垂类行业中位数 ${Math.round((viewsVsBm-1)*100)}%，说明标题/选题命中了推荐算法的偏好，进入流量池顺利。下一条可以沿用相同的标题结构做变体测试。`,
+          evidence: `播放 ${data.views.toLocaleString()} vs 行业中位 ${bm.views.toLocaleString()}；钩子类型：${sa.hookType}` });
+      } else {
+        issues.push({ level: "mid", title: "选题入口中等，有优化空间", confidence: 64,
+          text: `播放量接近行业中位，说明选题方向没问题，但标题/封面吸引力可以进一步提升。当前钩子类型"${sa.hookType}"${sa.hookType==="信息陈述"?"，属于最弱的类型，建议改成悬念提问或数据冲击":"，有一定效果"}。`,
+          evidence: `播放 ${data.views.toLocaleString()} vs 行业中位 ${bm.views.toLocaleString()}；选题分 ${scores.topic}` });
+      }
+
+      // ── 归因2：标题封面（结合标题长度、覆盖词、封面）
+      const titleHasNum = /[0-9一二三四五六七八九十]/.test(data.title);
+      const titleHasPeople = /新手|普通人|小白|打工人|学生|职场|宝妈/.test(data.title);
+      const coverTooLong = data.cover.length > 16;
+      if (scores.packaging < 58) {
+        const reasons = [];
+        if (!titleHasNum) reasons.push("标题缺少数字/量化");
+        if (!titleHasPeople) reasons.push("没有明确人群标签");
+        if (data.cover.length < 4) reasons.push("封面文案过短（无法传递信息）");
+        if (coverTooLong) reasons.push("封面文案过长（超过16字难以识别）");
+        if (!reasons.length) reasons.push("标题/封面表达过于抽象");
+        issues.push({ level: "mid", title: "标题/封面点击转化偏低", confidence: 68,
+          text: `标题和封面是决定用户是否点击的唯一要素。当前问题：${reasons.join("；")}。建议把封面控制在8-12字，标题加入数字和人群标签，给用户明确的"点进去能得到什么"的预期。`,
+          evidence: `标题："${data.title}"（${data.title.length}字）；封面："${data.cover}"（${data.cover.length}字）；包装分 ${scores.packaging}` });
+        actions.push(["标题封面重写", `封面改为"${data.title.slice(0,6)}×${3+Math.floor(Math.random()*3)}个方法"这类格式；标题加入人群词和结果词，删除"这个/那个/一些"等模糊表达。`]);
+      }
+
+      // ── 归因3：完播率（多原因交叉判断）
+      const completionVsBm = data.completion - bm.completion;
+      if (data.completion < 25) {
+        const cause = sa.structureScore < 50 ? "脚本结构松散" : sa.infoDensity > 55 ? "信息密度过高（每句话太长太密）" : sa.isShort ? "内容过短、价值感不足" : "开头兑现承诺的速度不够快";
+        issues.push({ level: "high", title: "完播率严重偏低 · 开头/结构是核心问题", confidence: 87,
+          text: `完播率 ${data.completion}% 低于行业基准 ${Math.abs(completionVsBm).toFixed(1)} 个百分点，说明大量用户在视频过半前就离开了。主要成因诊断：${cause}。脚本结构类型是"${sa.structureType}"，${sa.structureType==="叙事递进"?"这种结构最难维持用户注意力，建议改成步骤拆解或对比结构":"该结构有一定帮助但执行层面仍有改进空间"}。`,
+          evidence: `完播 ${data.completion}% vs 行业 ${bm.completion}%；结构分 ${sa.structureScore}；信息密度 ${sa.infoDensity}字/句（${sa.densityLabel}）` });
+        actions.push(["三段式重构开头", "删除所有背景铺垫，前5秒按：① 直接给出最终结果（「用这个方法，我3天完播率从18%涨到41%」）→ ② 引出问题（「你的内容可能也有同样的问题」）→ ③ 承诺解法（「接下来3分钟告诉你怎么改」）。"]);
+      } else if (completionVsBm < -5) {
+        issues.push({ level: "mid", title: "完播略低于行业基准", confidence: 70,
+          text: `完播率 ${data.completion}% 低于同垂类基准约 ${Math.abs(completionVsBm).toFixed(1)} 个百分点。脚本结构是"${sa.structureType}"，信息密度 ${sa.densityLabel}。中段可能出现了节奏下滑——步骤之间缺少视觉变化或小结点，用户注意力在中段流失。`,
+          evidence: `完播 ${data.completion}% vs 行业 ${bm.completion}%；信息密度 ${sa.infoDensity}字/句` });
+        actions.push(["压缩中段节奏", "每8-12秒设置一个「小节点」：可以是小结句、下一步预告，或一个反问。避免超过15秒没有任何节奏变化。"]);
+      } else if (data.completion >= bm.completion + 5) {
+        issues.push({ level: "good", title: "完播表现优于行业 · 可提炼结构模板", confidence: 78,
+          text: `完播率 ${data.completion}% 高于同垂类基准 ${completionVsBm.toFixed(1)} 个百分点，脚本结构"${sa.structureType}"执行到位。当前信息密度 ${sa.densityLabel}，节奏控制有效。建议把这条内容的结构固化成模板，复用到下一条。`,
+          evidence: `完播 ${data.completion}% vs 行业 ${bm.completion}%；结构类型 ${sa.structureType}；结构分 ${sa.structureScore}` });
+      } else {
+        issues.push({ level: "mid", title: "完播接近行业水平 · 中段节奏可优化", confidence: 63,
+          text: `完播率 ${data.completion}% 接近同垂类基准（${bm.completion}%），整体尚可。进一步提升的关键在于中段节奏——"${sa.structureType}"结构${sa.hasContrast?"已有对比设计":"建议在中段加入一次对比或案例"}，信息密度 ${sa.densityLabel}。`,
+          evidence: `完播 ${data.completion}% vs 行业 ${bm.completion}%；结构分 ${sa.structureScore}` });
+      }
+
+      // ── 归因4：互动设计
+      const engagementVsBm = data.engagement - bm.engagement;
+      if (data.engagement < 2) {
+        issues.push({ level: "high", title: "互动严重不足 · 评论区没有触发点", confidence: 82,
+          text: `互动率 ${data.engagement}% 远低于行业基准（${bm.engagement}%）。脚本中互动设计深度：「${sa.interactionDepth}」。没有明确的评论触发动作，用户看完就离开，无法形成评论区活跃度。低互动会影响算法判断内容的"讨论价值"，进一步限制分发。`,
+          evidence: `互动率 ${data.engagement}% vs 行业 ${bm.engagement}%；互动深度：${sa.interactionDepth}；互动分 ${sa.interactionScore}` });
+        actions.push(["设计低门槛互动触发", "把结尾的「记得关注」改为一个具体问题：「你现在最卡在哪一步？评论区说说，我出下期针对性内容」。或者设置二选一选题：「你喜欢A类型还是B类型？来投票」。"]);
+      } else if (engagementVsBm < -1.5) {
+        issues.push({ level: "mid", title: "互动偏低 · 结尾设计有改进空间", confidence: 67,
+          text: `互动率 ${data.engagement}% 低于行业基准 ${Math.abs(engagementVsBm).toFixed(1)} 个百分点，当前互动深度「${sa.interactionDepth}」偏弱。${sa.emotionScore < 50 ? "脚本情绪共鸣感不强，也会影响点赞和评论动机。" : ""}建议把互动触发点从结尾移到视频三分之二处。`,
+          evidence: `互动率 ${data.engagement}% vs 行业 ${bm.engagement}%；情绪评分 ${sa.emotionScore}；互动深度：${sa.interactionDepth}` });
+        actions.push(["提前互动触发节点", "在视频三分之二处插入互动引导（用户还没划走时），比结尾引导效果提升30%-50%。话术：「你有没有遇到这种情况？评论区告诉我，我按问题多的出下期」。"]);
+      } else if (data.engagement >= bm.engagement + 1.5) {
+        issues.push({ level: "good", title: "互动表现优异 · 评论区生态健康", confidence: 79,
+          text: `互动率 ${data.engagement}% 高于行业基准 ${engagementVsBm.toFixed(1)} 个百分点。当前互动设计深度「${sa.interactionDepth}」，有效触发了用户参与。建议把评论区最高频的问题整理成选题来源，形成"评论→选题"正向循环。`,
+          evidence: `互动率 ${data.engagement}% vs 行业 ${bm.engagement}%；互动深度：${sa.interactionDepth}` });
+      } else {
+        issues.push({ level: "mid", title: "互动中等 · 可进一步激活评论区", confidence: 61,
+          text: `互动率 ${data.engagement}% 接近行业基准，互动设计「${sa.interactionDepth}」。当前脚本${sa.hasCase?"有案例支撑，情绪共鸣感还可以":"缺少真实案例或情绪共鸣点，是影响互动的潜在因素"}。`,
+          evidence: `互动率 ${data.engagement}% vs 行业 ${bm.engagement}%；情绪评分 ${sa.emotionScore}` });
+      }
+
+      // ── 归因5：涨粉转化
+      if (data.follow < 0.2) {
+        issues.push({ level: "high", title: "转粉率极低 · 账号价值定位不清晰", confidence: 84,
+          text: `涨粉率 ${data.follow}% 非常低，说明用户认可单条内容，但没有"关注后能持续得到什么"的预期。当前脚本转粉承诺深度：「${sa.conversionDepth}」。单条内容的转粉率取决于两点：① 内容结尾是否建立了账号定位；② 内容是否暗示了系列感（"这是第X期"/"下期继续讲"）。`,
+          evidence: `涨粉率 ${data.follow}% vs 行业参考 ${bm.follow}%；转粉承诺：${sa.conversionDepth}；转粉分 ${sa.conversionScore}` });
+        actions.push(["建立账号定位句", `在视频结尾固定一句账号价值定位，例如："我专门帮${data.category}创作者做复盘和增长，每周更新，关注不迷路"。连续3-5条保持一致，用户才会形成认知。`]);
+      } else if (data.follow >= bm.follow) {
+        issues.push({ level: "good", title: "转粉效率良好 · 账号价值被用户认可", confidence: 75,
+          text: `涨粉率 ${data.follow}% 达到或超过行业参考值（${bm.follow}%），说明内容的转粉承诺有效。当前脚本转粉深度「${sa.conversionDepth}」。建议继续强化系列感，让每条视频在结尾都给出下一期的明确预告。`,
+          evidence: `涨粉率 ${data.follow}% vs 行业参考 ${bm.follow}%；转粉承诺：${sa.conversionDepth}` });
+        actions.push(["系列化内容承接", "在结尾加上下期预告：「下期讲X（评论区告诉我你更想先看哪个）」，既提升期待感，又提高当期互动率。"]);
+      } else {
+        issues.push({ level: "mid", title: "转粉率有提升空间", confidence: 66,
+          text: `涨粉率 ${data.follow}% 低于行业参考值（${bm.follow}%），转粉承诺深度「${sa.conversionDepth}」。${sa.conversionDepth==="弱（未建立关注理由）"?"脚本结尾没有明确说明关注后能持续得到什么，用户缺少关注动机":"建议在现有基础上增加账号定位表达"}。`,
+          evidence: `涨粉率 ${data.follow}% vs 行业参考 ${bm.follow}%；转粉承诺：${sa.conversionDepth}` });
+        actions.push(["补强转粉理由", "结尾加上「我接下来会连续做X个视频拆解这个主题」，让用户知道关注后会持续得到相关价值，而不是看完就走。"]);
+      }
+
+      // ── 补充动作（补足到至少3条）
+      if (actions.length < 3) {
+        actions.push(["单变量迭代原则", "复盘完成后，下一条只改一个核心变量（标题/开头/结构/结尾，四选一），其他不动。3条以上对比数据才能判断方向是否有效。"]);
+      }
+      if (sa.wordCount < 80 && !actions.some(a => a[0].includes("内容"))) {
+        actions.push(["补充内容深度", `脚本仅 ${sa.wordCount} 字，信息量偏少。建议补充1-2个真实案例或数据支撑，把核心观点讲透，而不是点到为止。`]);
+      }
+
+      const focus = issues.find(i => i.level === "high")?.title.split("·")[0].trim() || issues.find(i => i.level === "mid")?.title.split("·")[0].trim() || "放大有效经验";
+      const title = scores.total >= 78 ? "这条内容值得系列化复制 · 重点放大强项" : scores.total >= 58 ? "内容有需求，关键链路有待补强" : "多项指标偏弱 · 建议先聚焦最高优先级问题";
+      const copy = `本次复盘核心假设：「${focus}」。判断依据来自账号阶段（${data.accountStage} / ${data.fanRange}）× 脚本结构（${sa.structureType}）× 数据信号（完播 ${data.completion}%、互动 ${data.engagement}%）× 行业基准对比。建议下一条先改一个核心变量，才能验证假设是否成立。`;
+      const topics = buildTopics(data, focus);
+
+      return { scores, issues, actions, topics, title, copy, focus, scriptAnalysis: sa };
+    }
+
+    function buildTopics(data, focus) {
+      const base = data.category === "知识教程" ? "新手" : "普通人";
+      const commentWords = data.comments.split(/[,，、\s]+/).map(w => w.trim()).filter(Boolean);
+
+      // 基于评论关键词动态生成选题
+      const hasResourceRequest = commentWords.some(w => /模板|清单|资料|方法|步骤|怎么做/.test(w));
+      const hasCaseRequest = commentWords.some(w => /案例|举例|比如|实际|真实/.test(w));
+      const hasConfusion = commentWords.some(w => /看不懂|不理解|太快|再说|啥意思/.test(w));
+      const hasStageQ = commentWords.some(w => /新手|小白|刚开始|怎么入门/.test(w));
+
+      const topics = [];
+
+      if (hasResourceRequest) {
+        topics.push([`我整理了一份「${data.category}」完整资料包：评论区最多人问的${commentWords.find(w => /模板|清单|资料/.test(w)) || "内容"}都在这里`, `直接承接评论里的资源需求（"${commentWords.filter(w => /模板|清单|资料/.test(w)).join("/") || "求资料"}"），把资源变成下一条内容的核心钩子。`]);
+      } else if (hasCaseRequest) {
+        topics.push([`真实案例拆解：${base}做${data.category}的第一个月，我是怎么走过来的`, "承接评论里「求案例/举例」的需求，用第一人称叙述降低理解成本，更容易引发共鸣和收藏。"]);
+      } else if (hasConfusion) {
+        topics.push([`上一期很多人说看不懂，我重新讲一遍：${focus}到底怎么做`, "直接承接「看不懂/太快」的评论，把内容重新拆细，这类选题天然适合引发原用户二次观看。"]);
+      } else if (hasStageQ) {
+        topics.push([`${base}入门${data.category}的第一步：先弄清楚这3件事`, "承接入门级问题，适合吸引新关注者，同时给已有粉丝一个推荐给身边人的理由。"]);
+      } else {
+        topics.push([`${base}最容易卡住的第1步：用一个真实案例拆给你看`, "承接评论里的常见疑问，把抽象方法换成具体拆解，适合作为系列内容的第2集。"]);
+      }
+
+      // 第2条：迭代类选题（固定但有价值）
+      topics.push([`别再直接照搬爆款：${data.category}账号的3个数据复盘指标`, "把「复盘」能力本身作为内容选题，形成账号专业感，同时让观众理解为什么你的方法有效。"]);
+
+      // 第3条：基于最弱指标的改进记录
+      const weakPoint = data.completion < 30 ? "开头和完播" : data.engagement < 3 ? "评论互动" : data.follow < 0.35 ? "涨粉转化" : "内容结构";
+      topics.push([`我把这条视频重做一遍：重点改了${weakPoint}，结果是这样的`, "直接展示迭代过程，天然适合引发收藏（方法论）+ 评论（结果对比）+ 转粉（系列感）。"]);
+
+      return topics;
+    }
+
+    /* ── 行业基准渲染 ── */
+    function renderBenchmark(data, totalScore) {
+      const bm = BENCHMARKS[data.category] || BENCHMARKS["其他"];
+      const history = loadHistory();
+
+      const items = [
+        { label: "完播率", user: data.completion, bm: bm.completion, unit: "%" },
+        { label: "互动率", user: data.engagement, bm: bm.engagement, unit: "%" },
+        { label: "涨粉率", user: data.follow, bm: bm.follow, unit: "%" },
+        { label: "播放量", user: (data.views / 10000).toFixed(1), bm: (bm.views / 10000).toFixed(1), unit: "万", raw: { user: data.views, bm: bm.views } },
+        { label: "内容健康度", user: totalScore, bm: bm.health, unit: "分", isTotal: true }
+      ];
+
+      $("compareGrid").innerHTML = items.map(item => {
+        const userVal = item.raw ? item.raw.user : parseFloat(item.user);
+        const bmVal = item.raw ? item.raw.bm : parseFloat(item.bm);
+        const delta = userVal - bmVal;
+        const dColor = delta > 0 ? "#1e9b5a" : delta < -0.001 ? "#d84a42" : "#657184";
+        const dStr = delta > 0 ? `+${item.raw ? (delta / 10000).toFixed(1) + "万" : delta.toFixed(item.unit === "分" ? 0 : 1) + item.unit}` : `${item.raw ? (delta / 10000).toFixed(1) + "万" : delta.toFixed(item.unit === "分" ? 0 : 1) + item.unit}`;
+        return `
+          <div class="compare-card${item.isTotal ? " is-total" : ""}">
+            <div class="compare-lbl">${item.label}</div>
+            <div class="compare-vals"><b>${item.user}</b>${item.unit}</div>
+            <div class="bm-line">
+              <span class="bm-ref">行业 ${item.bm}${item.unit}</span>
+              <span class="compare-delta" style="color:${dColor}">${dStr}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // 迭代对比 banner
+      if (history.length >= 1) {
+        const prev = history[0];
+        const prevDelta = totalScore - prev.health;
+        const prevColor = prevDelta > 0 ? "#1e9b5a" : prevDelta < 0 ? "#d84a42" : "#657184";
+        $("iterBannerText").innerHTML = `与上一次诊断（${prev.time}，健康度 ${prev.health}）相比：健康度变化 <b style="color:${prevColor}">${prevDelta > 0 ? "+" : ""}${prevDelta}</b>。${prevDelta > 0 ? "说明上次的优化方向有效，继续沿此路径迭代。" : prevDelta < 0 ? "本次数据有所下滑，建议对比两次主要归因找出回退原因。" : "健康度持平，建议聚焦完播率或互动率做单变量测试。"}`;
+        $("iterBanner").style.display = "flex";
+      } else {
+        $("iterBanner").style.display = "none";
+      }
+
+      $("benchmarkSection").style.display = "";
+    }
+
+    /* ── 主渲染 ── */
+    function render(options = {}) {
+      const data = getFormData();
+      const result = diagnose(data);
+
+      $("diagnosisTitle").textContent = result.title;
+      $("diagnosisCopy").textContent = result.copy;
+      $("score").textContent = result.scores.total;
+      $("scoreText").textContent = result.scores.total >= 78 ? "建议快速复制为系列内容。" : result.scores.total >= 58 ? "先修复最短板，再做下一条测试。" : "优先重构入口和留存，不急着加量发布。";
+
+      $("statusDot").style.background = result.scores.total >= 78 ? "var(--green)" : result.scores.total >= 58 ? "var(--amber)" : "var(--red)";
+      $("statusDot").style.boxShadow = result.scores.total >= 78 ? "0 0 0 7px rgba(30,155,90,.12)" : result.scores.total >= 58 ? "0 0 0 7px rgba(216,137,18,.12)" : "0 0 0 7px rgba(216,74,66,.12)";
+
+      $("chips").innerHTML = [
+        `核心假设：${result.focus}`,
+        `内容类型：${data.category}`,
+        `证据来源：脚本 + 数据`,
+        `建议动作：单变量迭代`
+      ].map(text => `<span class="chip">${text}</span>`).join("");
+
+      $("metrics").innerHTML = metricConfig.map(item => {
+        const value = result.scores[item.key];
+        const color = value >= 75 ? "var(--green)" : value >= 55 ? "var(--amber)" : "var(--red)";
+        return `
+          <article class="metric">
+            <div class="label"><span>${item.label}</span><span>${value}${item.unit}</span></div>
+            <strong>${value}</strong>
+            <div class="bar"><span style="width:${value}%;background:${color}"></span></div>
+          </article>
+        `;
+      }).join("");
+
+      const sa = result.scriptAnalysis;
+      const scriptCards = [
+        {
+          title: "开头钩子",
+          score: sa.hookScore,
+          type: sa.hookType,
+          main: `"${sa.opening.slice(0, 52)}${sa.opening.length > 52 ? "…" : ""}"`,
+          note: sa.hookType === "信息陈述" ? "⚠️ 当前钩子类型最弱，建议改为悬念提问或警示规避" :
+                sa.hookType === "悬念提问" ? "✓ 有效的问句钩子" :
+                sa.hookType === "警示规避" ? "✓ 警示型钩子，完播提升效果显著" :
+                sa.hookType === "数据冲击" ? "✓ 数据型钩子，可信度高" : "✓ 故事型开头，情绪共鸣强"
+        },
+        {
+          title: "内容结构",
+          score: sa.structureScore,
+          type: sa.structureType,
+          main: `${sa.structureType} · 信息密度 ${sa.densityLabel}`,
+          note: `共 ${sa.sentences.length} 句 · ${sa.wordCount} 字${sa.isShort ? " ⚠️ 内容偏短" : ""}${sa.hasCase ? " · 有案例支撑" : " · 缺少案例"}`
+        },
+        {
+          title: "互动设计",
+          score: sa.interactionScore,
+          type: sa.interactionDepth,
+          main: `互动深度：${sa.interactionDepth}`,
+          note: sa.interactionDepth.includes("无") ? "⚠️ 没有任何互动触发设计，评论率会显著偏低" :
+                sa.interactionDepth.includes("低") ? "有疑问句但缺少明确的互动行动指令" :
+                sa.interactionDepth.includes("中") ? "有互动引导，建议移到视频三分之二处" : "✓ 低门槛互动设计，有效触发评论"
+        },
+        {
+          title: "转粉承诺",
+          score: sa.conversionScore,
+          type: sa.conversionDepth.split("（")[0],
+          main: sa.conversionDepth,
+          note: `情绪共鸣分：${sa.emotionScore}${sa.emotionScore < 50 ? " ⚠️ 情绪价值偏弱" : " · 情绪共鸣有效"} · ${sa.hasFollowPromise ? "有系列/下期承诺" : "缺少系列化承诺"}`
+        },
+      ];
+
+      $("scriptInsights").innerHTML = scriptCards.map(card => {
+        const color = card.score >= 75 ? "var(--green)" : card.score >= 55 ? "var(--amber)" : "var(--red)";
+        const bg = card.score >= 75 ? "#f0fdf4" : card.score >= 55 ? "#fff7ed" : "#fef2f2";
+        return `
+          <article class="script-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span class="mini-score" style="color:${color};background:${bg}">${card.score} 分</span>
+              <span style="font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid ${color};color:${color};background:${bg};font-weight:800">${card.type}</span>
+            </div>
+            <strong>${card.title}</strong>
+            <p style="font-size:12px;color:var(--muted);margin:5px 0;line-height:1.5">${card.main}</p>
+            <div class="evidence">${card.note}</div>
+          </article>
+        `;
+      }).join("");
+
+      $("issues").innerHTML = result.issues.map(item => `
+        <li class="issue ${item.level}">
+          <div class="item-top"><span>${item.title}</span><span class="tag">${item.level === "high" ? "高优先级" : item.level === "mid" ? "中等风险" : "可复用"} · ${item.confidence}%</span></div>
+          <p>${item.text}</p>
+          <div class="evidence">${item.evidence}</div>
+        </li>
+      `).join("");
+
+      $("actions").innerHTML = result.actions.map((item, index) => `
+        <li class="action">
+          <div class="item-top"><span>${index + 1}. ${item[0]}</span><span class="tag">下一条执行</span></div>
+          <p>${item[1]}</p>
+        </li>
+      `).join("");
+
+      $("topics").innerHTML = result.topics.map((item, index) => `
+        <li class="topic">
+          <div class="item-top"><span>选题 ${index + 1}</span><span class="tag">可拍</span></div>
+          <p><strong>${item[0]}</strong><br>${item[1]}</p>
+        </li>
+      `).join("");
+
+      const keywords = data.comments.split(/[,，、\s]+/).map(v => v.trim()).filter(Boolean);
+      $("keywords").innerHTML = keywords.length ? keywords.map(word => `<span class="keyword">${word}</span>`).join("") : `<div class="empty">暂无评论关键词</div>`;
+
+      /* 行业基准 */
+      renderBenchmark(data, result.scores.total);
+      $("sourceNote").style.display = "";
+
+      /* 保存历史 */
+      const now = new Date();
+      const topIssue = result.issues.find(i => i.level === "high")?.title || result.issues.find(i => i.level === "mid")?.title || "";
+      saveToHistory({
+        title: data.title,
+        category: data.category,
+        health: result.scores.total,
+        completion: data.completion,
+        engagement: data.engagement,
+        follow: data.follow,
+        views: data.views,
+        topIssue,
+        time: now.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" }) + " " + now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
+      });
+
+      // 闭环传递：复盘诊断 → 增长规划
+      try {
+        localStorage.setItem('cg_pipeline_postmortem', JSON.stringify({
+          category: data.category,
+          accountStage: data.accountStage,
+          fanRange: data.fanRange,
+          topIssue,
+          health: result.scores.total,
+          focus: result.focus
+        }));
+      } catch(e) {}
+
+      /* 更新 iterCount 显示 */
+      const history = loadHistory();
+      $("iterCount").textContent = history.length > 1 ? `第 ${history.length} 次诊断` : "";
+
+      document.querySelector(".dashboard").classList.remove("is-empty");
+      document.querySelector(".dashboard").classList.remove("is-analyzing");
+      setBusy(false);
+
+      if (options.manual) {
+        const ts = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        $("runStatus").textContent = `已生成复盘诊断 · ${ts} · 含行业基准对比`;
+      }
+
+      if (options.scroll) {
+        document.querySelector(".dashboard").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function resetResults() {
+      document.querySelector(".dashboard").classList.add("is-empty");
+      document.querySelector(".dashboard").classList.remove("is-analyzing");
+      $("diagnosisTitle").textContent = "等待生成诊断";
+      $("diagnosisCopy").textContent = "请先填写左侧的视频标题、脚本文案、封面文案和数据指标。点击「分析诊断」后，系统会展示脚本结构分析、行业基准对比、归因假设和优化建议。";
+      $("score").textContent = "--";
+      $("scoreText").textContent = "输入视频信息后点击「分析诊断」，系统会结合行业基准数据生成归因报告。";
+      $("runStatus").textContent = "尚未生成。填写左侧信息后，点击「分析诊断」查看分析。";
+      $("statusDot").style.background = "var(--amber)";
+      $("statusDot").style.boxShadow = "0 0 0 7px rgba(216,137,18,.12)";
+      $("sourceNote").style.display = "none";
+      $("benchmarkSection").style.display = "none";
+      ["chips", "metrics", "scriptInsights", "issues", "actions", "topics", "keywords"].forEach(id => {
+        $(id).innerHTML = "";
+      });
+      setBusy(false);
+    }
+
+    function setBusy(isBusy) {
+      $("diagnoseTopBtn").disabled = isBusy;
+      $("submitDiagnoseBtn").disabled = isBusy;
+      $("sampleBtn").disabled = isBusy;
+      $("historyBtn").disabled = isBusy;
+      $("diagnoseTopBtn").textContent = isBusy ? "分析中..." : "分析诊断";
+      $("submitDiagnoseBtn").textContent = isBusy ? "分析中..." : "分析诊断";
+    }
+
+    function startAnalysis() {
+      window.clearTimeout(analysisTimer);
+      const dashboard = document.querySelector(".dashboard");
+      dashboard.classList.remove("is-empty");
+      dashboard.classList.add("is-analyzing");
+      setBusy(true);
+      $("diagnosisTitle").textContent = "正在分析内容表现";
+      $("diagnosisCopy").textContent = "系统正在拆解脚本开头、内容结构、互动话术和转粉承诺，并结合完播、互动、涨粉数据与行业基准生成归因假设。";
+      $("score").textContent = "...";
+      $("scoreText").textContent = "预计需要 2-3 秒。";
+      $("runStatus").textContent = "分析中 · 正在提取脚本证据与行业基准数据";
+      $("statusDot").style.background = "var(--cyan)";
+      $("statusDot").style.boxShadow = "0 0 0 7px rgba(15,159,179,.14)";
+      dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      analysisTimer = window.setTimeout(() => {
+        render({ manual: true });
+      }, 2400);
+    }
+
+    $("postForm").addEventListener("submit", event => { event.preventDefault(); startAnalysis(); });
+    $("diagnoseTopBtn").addEventListener("click", startAnalysis);
+    $("historyBtn").addEventListener("click", showHistoryModal);
+    $("sampleBtn").addEventListener("click", () => {
+      const s = samples[sampleIndex % samples.length];
+      sampleIndex++;
+      fields.forEach(key => { $(key).value = s[key]; });
+      resetResults();
+      setTimeout(() => startAnalysis(), 300);
+    });
+
+    // 迭代日志折叠
+    $("changelogToggle").addEventListener("click", () => {
+      const cl = $("changelog");
+      const open = cl.classList.toggle("open");
+      $("changelogToggle").setAttribute("aria-expanded", open);
+    });
+
+    resetResults();
+
+    // 闭环接收：合规检查 → 复盘诊断
+    try {
+      const _inc = JSON.parse(localStorage.getItem('cg_pipeline_safety') || 'null');
+      if (_inc?.title || _inc?.script) {
+        if (_inc.title) $("title").value = _inc.title;
+        if (_inc.script) $("script").value = _inc.script;
+        const tip = document.createElement("div");
+        tip.style.cssText = "margin:0 0 12px;padding:10px 14px;border:1px solid rgba(15,159,179,.3);border-radius:8px;background:rgba(15,159,179,.06);color:#0c7180;font-size:13px";
+        tip.textContent = "✅ 已从合规检查接收标题和脚本，可直接点击「分析诊断」。";
+        document.querySelector(".dashboard")?.prepend(tip);
+        setTimeout(() => tip.remove(), 4000);
+        localStorage.removeItem('cg_pipeline_safety');
+      }
+    } catch(e) {}
+  
+
+  ;(() => {
+    const feedbackRoot = document.getElementById("toolFeedback");
+    if (!feedbackRoot) return;
+    const storageKey = "tool_feedback_postmortem_v1";
+    const reasons = { up: ["归因清楚","动作可执行","证据充分","能接下一步"], down: ["归因不准确","动作不具体","缺少证据","不好验证"] };
+    const $f = (id) => document.getElementById(id);
+    const escapeFeedback = (value) => String(value || "").replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
+    const readFeedback = () => { try { return JSON.parse(localStorage.getItem(storageKey)) || null; } catch { return null; } };
+    const writeFeedback = (payload) => localStorage.setItem(storageKey, JSON.stringify(payload));
+    const notifyFeedback = (message) => {
+      if (typeof showToast === "function") { showToast(message); return; }
+      const existing = document.getElementById("toolFeedbackToast");
+      const toast = existing || document.createElement("div");
+      toast.id = "toolFeedbackToast";
+      toast.textContent = message;
+      toast.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:80;max-width:340px;padding:12px 14px;border:1px solid rgba(15,159,179,.3);border-radius:8px;background:rgba(255,255,255,.97);box-shadow:0 16px 40px rgba(31,45,39,.14);font-size:13px;color:#15211f";
+      if (!existing) document.body.appendChild(toast);
+      clearTimeout(notifyFeedback.timer);
+      notifyFeedback.timer = setTimeout(() => toast.remove(), 2200);
+    };
+    const renderFeedback = (value, reason = "") => {
+      const saved = readFeedback();
+      feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.toolFeedback === value));
+      feedbackRoot.classList.toggle("show-detail", Boolean(value));
+      $f("toolFeedbackQuestion").textContent = value === "up" ? "你最认可哪一点？" : "哪里不够好？";
+      $f("toolFeedbackReasons").innerHTML = (reasons[value] || reasons.down).map((label) => '<button class="tool-feedback-reason' + (label === reason ? ' active' : '') + '" type="button" data-reason="' + escapeFeedback(label) + '">' + escapeFeedback(label) + '</button>').join("");
+      $f("toolFeedbackText").value = saved?.text || "";
+      $f("toolFeedbackNote").textContent = value ? (reason ? "已记录：" + reason : "已记录反馈，可以继续选择原因或写补充说明。") : "";
+    };
+    const saved = readFeedback();
+    if (saved?.value) renderFeedback(saved.value, saved.reason || "");
+    feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const payload = { value: btn.dataset.toolFeedback, reason: "", text: readFeedback()?.text || "", updatedAt: new Date().toISOString() };
+        writeFeedback(payload);
+        renderFeedback(payload.value, payload.reason);
+        notifyFeedback(payload.value === "up" ? "已记录：这个结果有帮助" : "已记录：这个结果没帮助");
+      });
+    });
+    $f("toolFeedbackReasons").addEventListener("click", (event) => {
+      const btn = event.target.closest(".tool-feedback-reason");
+      if (!btn) return;
+      const current = readFeedback() || { value: "down", text: "" };
+      const payload = { ...current, reason: btn.dataset.reason, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason);
+      notifyFeedback("已记录反馈原因：" + payload.reason);
+    });
+    $f("toolFeedbackSaveBtn").addEventListener("click", () => {
+      const current = readFeedback() || { value: "down", reason: "", text: "" };
+      const text = $f("toolFeedbackText").value.trim();
+      const hadText = Boolean((current.text || "").trim());
+      const payload = { ...current, text, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason || "");
+      const message = text ? "已保存补充说明" : hadText ? "已清空补充说明" : "补充说明为空，未保存新内容";
+      $f("toolFeedbackNote").textContent = message;
+      notifyFeedback(message);
+    });
+  })();
+
+</script>
+</body>
+</html>

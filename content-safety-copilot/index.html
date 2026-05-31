@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Safety Copilot · v2</title>
+  <style>
+    :root {
+      --ink: #18201c;
+      --muted: #68736f;
+      --line: #d9e0dc;
+      --paper: #f6f4ee;
+      --panel: #ffffff;
+      --green: #0f8b6f;
+      --green-dark: #0a5f51;
+      --amber: #b86d16;
+      --red: #c5443d;
+      --blue: #316f9f;
+      --shadow: 0 24px 70px rgba(31, 45, 39, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(15, 139, 111, 0.08), transparent 34%),
+        linear-gradient(225deg, rgba(184, 109, 22, 0.09), transparent 28%),
+        var(--paper);
+      font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+    }
+
+    button, textarea, input, select {
+      font: inherit;
+    }
+
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mark {
+      width: 48px;
+      height: 48px;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #fdfbf4;
+      box-shadow: 6px 6px 0 rgba(15, 139, 111, 0.28);
+      flex: 0 0 auto;
+    }
+
+    .mark svg {
+      width: 25px;
+      height: 25px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 54px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.35fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: linear-gradient(90deg, #eef8f3, #fffdf7);
+      position: relative;
+    }
+
+    .panel-header::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 18px;
+      bottom: 18px;
+      width: 5px;
+      border-radius: 0 999px 999px 0;
+      background: var(--green);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 13px;
+      border-radius: 8px;
+      color: white;
+      background: var(--green);
+      box-shadow: 5px 5px 0 rgba(15, 139, 111, 0.18);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      background: #fffdf7;
+      white-space: nowrap;
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    .pulse {
+      animation: pulsePanel 0.75s ease;
+    }
+
+    @keyframes pulsePanel {
+      0% {
+        box-shadow: 0 0 0 0 rgba(15, 139, 111, 0.3);
+      }
+      100% {
+        box-shadow: 0 0 0 16px rgba(15, 139, 111, 0);
+      }
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid #cfd8d3;
+      border-radius: 8px;
+      background: #fffef9;
+      color: var(--ink);
+      outline: none;
+      padding: 12px 13px;
+      transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    textarea {
+      min-height: 152px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 4px rgba(15, 139, 111, 0.12);
+      background: white;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 15px;
+      cursor: pointer;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 800;
+      transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      flex: 1;
+      color: white;
+      background: var(--green);
+      box-shadow: 0 12px 25px rgba(15, 139, 111, 0.24);
+    }
+
+    .primary:hover {
+      background: var(--green-dark);
+    }
+
+    .secondary {
+      background: #ede8dc;
+      color: var(--ink);
+    }
+
+    .result-overview {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .overview-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf7;
+      padding: 14px;
+      min-height: 98px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .overview-card span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .overview-card strong {
+      display: block;
+      margin-top: 9px;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .overview-card small {
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+
+    .overview-card.risk-low {
+      border-color: rgba(15, 139, 111, 0.32);
+      background: #eff9f5;
+    }
+
+    .overview-card.risk-medium {
+      border-color: rgba(184, 109, 22, 0.34);
+      background: #fff5e6;
+    }
+
+    .overview-card.risk-high {
+      border-color: rgba(197, 68, 61, 0.3);
+      background: #fff0ee;
+    }
+
+    .summary {
+      background: #fffdf7;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 214px;
+    }
+
+    .summary h3, .block h3 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 11px;
+      border: 1px solid rgba(15, 139, 111, 0.22);
+      border-radius: 8px;
+      color: var(--green-dark);
+      background: #e8f6f1;
+      font-weight: 900;
+    }
+
+    .summary p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #ecf5f1;
+      color: var(--green-dark);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .block {
+      background: #fffdf7;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .issue-list, .check-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .issue {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid #ead6bd;
+      border-radius: 8px;
+      background: #fff8ed;
+    }
+
+    .issue.high-risk {
+      border-color: #efc4c0;
+      background: #fff1ef;
+    }
+
+    .issue-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      margin-top: 7px;
+      background: var(--amber);
+    }
+
+    .issue.high-risk .issue-dot {
+      background: var(--red);
+    }
+
+    .issue strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .issue p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .rewrite {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .rewrite-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      background: white;
+      min-height: 132px;
+    }
+
+    .rewrite-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .rewrite-box p {
+      margin: 0;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .safe {
+      border-color: rgba(15, 139, 111, 0.28);
+      background: #f2fbf7;
+    }
+
+    .block-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .block-head h3 {
+      margin: 0;
+    }
+
+    .copy-btn {
+      border: 1px solid rgba(15, 139, 111, 0.3);
+      background: #eef9f5;
+      color: var(--green-dark);
+      border-radius: 8px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      background: #def1eb;
+    }
+
+    .copy-fallback {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      min-height: 136px;
+      background: #ffffff;
+    }
+
+    .copy-fallback.active {
+      display: block;
+    }
+
+    .diff-list {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .diff-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      overflow: hidden;
+    }
+
+    .diff-tag {
+      padding: 8px 10px;
+      background: #f0ece2;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .diff-status {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--green-dark);
+      background: #dff3ed;
+      white-space: nowrap;
+    }
+
+    .diff-status.clean {
+      color: #6b716e;
+      background: #ece7dd;
+    }
+
+    .diff-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .diff-cell {
+      padding: 11px;
+      min-height: 74px;
+    }
+
+    .diff-cell:first-child {
+      border-right: 1px solid var(--line);
+      background: #fff6f3;
+    }
+
+    .diff-cell:last-child {
+      background: #f2fbf7;
+    }
+
+    .diff-cell span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .diff-cell p {
+      margin: 0;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .check-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #ece6d9;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .check-list li:last-child {
+      border-bottom: 0;
+    }
+
+    .tick {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: #e3f3ee;
+      color: var(--green-dark);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .empty-hint {
+      color: var(--muted);
+      line-height: 1.7;
+      border: 1px dashed #cbd6d1;
+      border-radius: 8px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .loading-state {
+      display: grid;
+      place-items: center;
+      gap: 14px;
+      min-height: 220px;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed #cbd6d1;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border: 4px solid #d8e7e1;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* v2 新增 */
+    .changelog {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 2px 8px rgba(31,45,39,.04);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    .changelog-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 16px;
+      border: none;
+      background: rgba(15,139,111,.05);
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      color: var(--ink);
+      transition: background .16s;
+    }
+
+    .changelog-toggle:hover { background: rgba(15,139,111,.1); }
+
+    .changelog-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cl-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--green);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .cl-badge.old {
+      background: #d0ddd8;
+      color: #68736f;
+    }
+
+    .changelog-title {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .changelog-caret {
+      font-size: 12px;
+      color: var(--muted);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    .changelog.open .changelog-caret { transform: rotate(180deg); }
+
+    .changelog-body {
+      display: none;
+      padding: 0 16px 16px;
+    }
+
+    .changelog.open .changelog-body { display: block; }
+
+    .changelog-versions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .cl-version {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fff;
+    }
+
+    .cl-version.current {
+      border-color: var(--green);
+      background: rgba(15,139,111,.03);
+    }
+
+    .cl-version-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .cl-version-head span { font-size: 12px; color: var(--muted); }
+
+    .cl-list {
+      margin: 0;
+      padding: 0 0 0 16px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .cl-list li.good { color: #0a5f51; }
+    .cl-list li.bad  { text-decoration: line-through; opacity: .6; }
+
+    .cl-reason {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(15,139,111,.06);
+      border-left: 3px solid var(--green);
+      font-size: 12px;
+      color: var(--green-dark);
+      line-height: 1.65;
+    }
+
+    .cl-section-title { display: flex; align-items: center; gap: 8px; margin: 16px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .cl-section-title:first-child { margin-top: 4px; }
+    .cl-section-icon { font-size: 14px; }
+    .cl-rival-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .cl-rival-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: rgba(255,255,255,.72); transition: border-color .16s; }
+    .cl-rival-card:hover { border-color: rgba(15,139,111,.34); }
+    .cl-rival-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .cl-rival-icon { font-size: 20px; flex-shrink: 0; }
+    .cl-rival-name { color: var(--ink); font-size: 13px; font-weight: 800; line-height: 1.3; }
+    .cl-rival-label { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; background: rgba(24,32,28,.06); color: var(--muted); font-size: 10px; font-weight: 800; }
+    .cl-rival-list { margin: 0; padding: 0 0 0 16px; color: #4f5b57; font-size: 12px; line-height: 1.75; }
+    .cl-rival-list li { margin-bottom: 2px; }
+    .cl-rival-list li.cl-rival-weak { color: var(--muted); opacity: .78; }
+    .cl-innovation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 9px; margin-bottom: 12px; }
+    .cl-inno-card { border: 1px solid rgba(15,139,111,.22); border-radius: 8px; padding: 12px; background: rgba(15,139,111,.045); transition: transform .14s, box-shadow .14s; }
+    .cl-inno-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,139,111,.1); }
+    .cl-inno-icon { margin-bottom: 6px; font-size: 18px; }
+    .cl-inno-title { margin-bottom: 4px; color: var(--ink); font-size: 12px; font-weight: 900; }
+    .cl-inno-desc { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .cl-core-insight { margin-bottom: 8px; padding: 12px 14px; border-left: 3px solid var(--green); border-radius: 8px; background: rgba(15,139,111,.065); color: var(--green-dark); font-size: 12px; line-height: 1.7; }
+    .cl-core-label { margin-bottom: 5px; color: var(--green); font-size: 11px; font-weight: 900; letter-spacing: .04em; }
+    .cl-roadmap { position: relative; margin-bottom: 12px; padding-left: 20px; }
+    .cl-roadmap::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; border-radius: 999px; background: linear-gradient(to bottom, var(--green), var(--amber)); opacity: .42; }
+    .cl-roadmap-item { position: relative; padding: 8px 0 8px 14px; }
+    .cl-roadmap-dot { position: absolute; left: -17px; top: 12px; width: 8px; height: 8px; border: 2px solid rgba(255,255,255,.92); border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px rgba(15,139,111,.25); }
+    .cl-roadmap-title { margin-bottom: 2px; color: var(--ink); font-size: 12px; font-weight: 800; }
+    .cl-roadmap-desc { color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .cl-metric-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border: 1px solid rgba(15,139,111,.18); border-radius: 8px; background: rgba(15,139,111,.05); }
+    .cl-metric-label { flex-shrink: 0; color: var(--green); font-size: 11px; font-weight: 900; }
+    .cl-metric-tag { display: inline-flex; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.7); color: var(--muted); font-size: 10px; font-weight: 700; }
+
+    @media (max-width: 560px) {
+      .changelog-versions, .cl-rival-grid { grid-template-columns: 1fr; }
+    }
+
+    .platform-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .platform-tab {
+      flex: 1;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf7;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all .18s;
+    }
+
+    .platform-tab.active {
+      border-color: var(--green);
+      background: #e8f6f1;
+      color: var(--green-dark);
+    }
+
+    .platform-tab:hover:not(.active) {
+      border-color: #adc9be;
+      background: #f2f8f5;
+      color: var(--ink);
+    }
+
+    .version-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .v-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border: 1px solid rgba(15,139,111,.3);
+      border-radius: 999px;
+      color: var(--green-dark);
+      font-size: 11px;
+      font-weight: 800;
+      background: #e8f6f1;
+    }
+
+    .risk-level-bar {
+      display: flex;
+      gap: 1px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .risk-seg {
+      flex: 1;
+      height: 6px;
+    }
+
+    .overview-card.risk-low .risk-icon { color: var(--green); }
+    .overview-card.risk-medium .risk-icon { color: var(--amber); }
+    .overview-card.risk-high .risk-icon { color: var(--red); }
+
+    .platform-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+      border: 1px solid rgba(49,111,159,.2);
+      border-radius: 8px;
+      background: rgba(49,111,159,.06);
+      color: #316f9f;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .layout, .result-overview, .rewrite, .diff-body {
+        grid-template-columns: 1fr;
+      }
+
+      .diff-cell:first-child {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        padding: 16px;
+      }
+
+      .two, .actions {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+      }
+
+      .overview-card strong {
+        font-size: 32px;
+      }
+    }
+    /* ── 全链路导航条 ── */
+    .pipeline-nav {
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.88);
+      box-shadow: 0 2px 8px rgba(31,45,39,.04);
+      overflow: hidden;
+    }
+
+    .pipeline-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+
+    .pipeline-label {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .pipeline-steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .pipeline-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all .16s;
+      white-space: nowrap;
+    }
+
+    a.pipeline-step:hover {
+      border-color: var(--line);
+      color: var(--ink);
+      background: rgba(255,255,255,.8);
+    }
+
+    .pipeline-step.ps-current {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+
+    .ps-num { opacity: .7; font-size: 11px; }
+
+    .ps-arrow {
+      color: var(--muted);
+      font-size: 11px;
+      opacity: .5;
+    }
+
+    .pipeline-insight {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green-dark);
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    @media (max-width: 720px) {
+      .pipeline-insight { display: none; }
+      .pipeline-inner { gap: 8px; }
+      .pipeline-steps { min-width: 0; overflow-x: auto; padding-bottom: 2px; }
+      .pipeline-step { flex: 0 0 auto; }
+    }
+    /* ── History trend ── */
+    .history-trend { margin-top: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
+    .history-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .history-trend h3 { margin: 0; font-size: 13px; font-weight: 800; color: var(--ink); line-height: 1.35; }
+    .trend-status { flex: 0 0 auto; padding: 4px 8px; border-radius: 999px; background: #e8f6f1; font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .trend-bars { display: flex; align-items: end; gap: 8px; min-height: 84px; padding-top: 6px; }
+    .trend-bar-wrap { display: grid; grid-template-rows: 16px 48px 16px; align-items: end; justify-items: center; gap: 5px; flex: 1; min-width: 0; }
+    .trend-bar { align-self: end; width: 100%; border-radius: 4px 4px 0 0; min-height: 6px; transition: height .3s; }
+    .trend-bar-label { font-size: 10px; color: var(--muted); white-space: nowrap; line-height: 1; }
+    .trend-bar-val { font-size: 11px; font-weight: 900; line-height: 1; }
+    .trend-empty { font-size: 12px; color: var(--muted); padding: 8px 0; }
+    @media (max-width: 560px) {
+      .history-trend-head { display: grid; justify-content: stretch; }
+      .trend-status { width: fit-content; }
+    }
+    /* ── Apply all button ── */
+    .apply-all-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--green); background: rgba(15,139,111,.08); color: var(--green-dark); font-size: 13px; font-weight: 800; cursor: pointer; transition: all .16s; }
+    .apply-all-btn:hover { background: rgba(15,139,111,.15); }
+  
+
+    /* lightweight user feedback */
+    .tool-feedback{margin:12px 0 2px;padding:12px;border:1px solid rgba(15,159,179,.22);border-radius:8px;background:rgba(255,255,255,.72);font-size:12px;line-height:1.6;color:var(--muted, #65736f)}
+    .tool-feedback-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .tool-feedback-title{color:var(--ink, var(--text, #15211f));font-size:13px;font-weight:900}
+    .tool-feedback-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .tool-feedback-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:#fff;color:var(--muted, #65736f);font-size:12px;font-weight:900;transition:all .16s}
+    .tool-feedback-btn:hover{border-color:rgba(15,159,179,.38);color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));background:rgba(15,159,179,.06)}
+    .tool-feedback-btn.active{border-color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));color:#fff;background:var(--brand, var(--accent, var(--cyan, #0f9fb3)));box-shadow:0 8px 18px rgba(15,159,179,.16)}
+    .tool-feedback-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line, var(--line-soft, #d6e0de))}
+    .tool-feedback.show-detail .tool-feedback-detail{display:block}
+    .tool-feedback-question{margin-bottom:8px;color:var(--muted, #65736f);font-weight:800}
+    .tool-feedback-reasons{display:flex;gap:7px;flex-wrap:wrap}
+    .tool-feedback-reason{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:rgba(255,255,255,.74);color:var(--muted, #65736f);font-size:11px;font-weight:850}
+    .tool-feedback-reason:hover{border-color:rgba(15,159,179,.36);color:var(--ink, var(--text, #15211f))}
+    .tool-feedback-reason.active{border-color:rgba(22,122,90,.45);color:var(--green, #167a5a);background:rgba(22,122,90,.08)}
+    .tool-feedback-input{width:100%;margin-top:10px;min-height:72px;resize:vertical;background:#fff;font-size:12px;line-height:1.55}
+    .tool-feedback-save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+    .tool-feedback-note{color:var(--green, #167a5a);font-size:11px;font-weight:850}
+    .tool-feedback-save{min-height:28px;padding:0 11px;font-size:11px}
+
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 3l7 3v5c0 4.8-2.8 8.4-7 10-4.2-1.6-7-5.2-7-10V6l7-3z" stroke="#18201c" stroke-width="2" />
+            <path d="M8.5 12l2.2 2.2 4.8-5" stroke="#0f8b6f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <h1>Content Safety Copilot</h1>
+          <p class="subtitle">创作者发布前用来识别平台风险、表达改写、合规自查</p>
+          <div class="version-row">
+            <span class="v-tag">v3.0 · 趋势追踪 + 一键应用建议</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 完整链路导航 -->
+    <nav class="pipeline-nav" aria-label="创作者增长闭环">
+      <div class="pipeline-inner">
+        <span class="pipeline-label">创作者增长闭环</span>
+        <div class="pipeline-steps">
+          <a class="pipeline-step" href="../inspiration-station/index.html"><span class="ps-num">①</span><span class="ps-name">选题</span></a>
+          <span class="ps-arrow">→</span>
+          <span class="pipeline-step ps-current" aria-current="step"><span class="ps-num">②</span><span class="ps-name">创作合规</span></span>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../creator-postmortem-ai/index.html"><span class="ps-num">③</span><span class="ps-name">复盘诊断</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../creatorinsight-ai/index.html"><span class="ps-num">④</span><span class="ps-name">增长规划</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../ab-test-designer/index.html"><span class="ps-num">⑤</span><span class="ps-name">实验验证</span></a>
+          <span class="ps-arrow" style="opacity:.25">·</span>
+          <a class="pipeline-step" href="../prd-copilot/index.html"><span class="ps-num">+</span><span class="ps-name">PRD方案化</span></a>
+          <a class="pipeline-step" href="../launcher.html"><span class="ps-name">返回合集</span></a>
+        </div>
+        <span class="pipeline-insight">💡 本页解决“发布前有没有风险”，减少返工和限流误判。</span>
+      </div>
+    </nav>
+
+    <!-- 迭代日志 + 竞品调研 -->
+    <div class="changelog" id="changelog">
+      <button class="changelog-toggle" id="changelogToggle" type="button" aria-expanded="false">
+        <div class="changelog-toggle-left">
+          <span class="cl-badge">v3.0</span>
+          <span class="changelog-title">竞品对比 · 创新点 · 优化方向</span>
+        </div>
+        <span class="changelog-caret">▼</span>
+      </button>
+      <div class="changelog-body">
+        <div class="cl-section-title"><span class="cl-section-icon">📊</span>市面竞品现状</div>
+        <div class="cl-rival-grid">
+          <div class="cl-rival-card">
+            <div class="cl-rival-header"><span class="cl-rival-icon">🎵</span><div><div class="cl-rival-name">抖音创作服务中心</div><span class="cl-rival-label">平台官方</span></div></div>
+            <ul class="cl-rival-list"><li>规则来源权威，能覆盖账号处罚、发布提醒和平台侧治理</li><li class="cl-rival-weak">更像平台通知和规则看板，不负责把文案改到可发布</li><li class="cl-rival-weak">跨平台迁移弱，创作者仍要自己判断小红书/B站差异</li></ul>
+          </div>
+          <div class="cl-rival-card">
+            <div class="cl-rival-header"><span class="cl-rival-icon">⚡</span><div><div class="cl-rival-name">快手内容安全中心</div><span class="cl-rival-label">平台治理</span></div></div>
+            <ul class="cl-rival-list"><li>强在规则解释、处罚提示和账号状态相关安全信息</li><li class="cl-rival-weak">面向平台生态治理，不是创作者发布前的改稿工作台</li><li class="cl-rival-weak">缺少个人历史趋势和“改前改后”闭环</li></ul>
+          </div>
+          <div class="cl-rival-card">
+            <div class="cl-rival-header"><span class="cl-rival-icon">🧰</span><div><div class="cl-rival-name">第三方违禁词检测工具</div><span class="cl-rival-label">词库工具</span></div></div>
+            <ul class="cl-rival-list"><li>检测速度快，适合批量扫敏感词和基础违规表达</li><li class="cl-rival-weak">容易停留在“命中词库”，解释风险上下文能力弱</li><li class="cl-rival-weak">改写结果通常需要手动复制和二次校对</li></ul>
+          </div>
+          <div class="cl-rival-card">
+            <div class="cl-rival-header"><span class="cl-rival-icon">🤖</span><div><div class="cl-rival-name">通用 AI 改写助手</div><span class="cl-rival-label">泛化生成</span></div></div>
+            <ul class="cl-rival-list"><li>能快速改写语气、标题和口播稿，生成效率高</li><li class="cl-rival-weak">不理解平台规则和账号阶段，可能把风险改得更隐蔽</li><li class="cl-rival-weak">缺少二次检测通过率和合规趋势沉淀</li></ul>
+          </div>
+        </div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">💡</span>我们的创新点</div>
+        <div class="cl-innovation-grid">
+          <div class="cl-inno-card"><div class="cl-inno-icon">🧭</div><div class="cl-inno-title">多平台规则口径</div><div class="cl-inno-desc">抖音 / 小红书 / B站分平台检测，同一文案给出不同风险解释</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">🪜</div><div class="cl-inno-title">分级风险解释</div><div class="cl-inno-desc">不只标红违规词，而是解释为什么危险、在哪个平台更敏感</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">✍️</div><div class="cl-inno-title">一键应用建议</div><div class="cl-inno-desc">改写结果可直接回填输入框，让检测和修稿形成连续操作</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">📈</div><div class="cl-inno-title">合规趋势追踪</div><div class="cl-inno-desc">记录近 5 次检测分，帮助创作者看见内容风险是否在下降</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">👥</div><div class="cl-inno-title">粉丝量级阈值</div><div class="cl-inno-desc">大号和新号使用不同判断严格度，避免统一口径误导决策</div></div>
+        </div>
+        <div class="cl-core-insight"><div class="cl-core-label">核心判断</div>创作者发布前真正需要的不是更大的规则库，而是“哪里有风险、为什么危险、怎么改、改完是否更稳”。所以本工具避开规则规模竞争，聚焦发布前自救闭环。</div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">🚀</span>后续优化方向</div>
+        <div class="cl-roadmap">
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">接入平台政策 / 敏感词 API</div><div class="cl-roadmap-desc">让规则库从本地模拟升级为可更新、可追踪的实时口径</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">隐性语义风险识别</div><div class="cl-roadmap-desc">用大模型识别擦边、诱导、夸大承诺等非关键词型风险</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">自定义行业词库</div><div class="cl-roadmap-desc">支持团队按行业添加禁用表达、品牌词和高风险承诺</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">批量粘贴检测</div><div class="cl-roadmap-desc">一次检测多条标题 / 口播稿，适配团队内容排期审核</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">发布后风险反馈</div><div class="cl-roadmap-desc">把发布后的限流、删除、提醒反馈回写到检测规则</div></div></div>
+        </div>
+        <div class="cl-metric-bar"><span class="cl-metric-label">🎯 验证指标</span><span class="cl-metric-tag">误报率</span><span class="cl-metric-tag">改写采纳率</span><span class="cl-metric-tag">二次检测通过率</span><span class="cl-metric-tag">发布后风险反馈率</span></div>
+      </div>
+    </div>
+
+    <section class="layout">
+      <aside class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">内容送检</h2>
+          <span class="badge">发布前</span>
+        </div>
+        <div class="panel-body">
+          <div class="platform-tabs" id="platformTabs">
+            <button class="platform-tab active" data-platform="douyin">🎵 抖音</button>
+            <button class="platform-tab" data-platform="xiaohongshu">📕 小红书</button>
+            <button class="platform-tab" data-platform="bilibili">📺 B站</button>
+          </div>
+
+          <div class="two">
+            <div class="field">
+              <label for="vertical">内容垂类</label>
+              <select id="vertical">
+                <option>泛知识 / 科普</option>
+                <option>教育培训</option>
+                <option>职场成长</option>
+                <option>财经理财</option>
+                <option>商业创业</option>
+                <option>健康养生</option>
+                <option>医疗科普</option>
+                <option>母婴育儿</option>
+                <option>美妆测评</option>
+                <option>穿搭时尚</option>
+                <option>美食探店</option>
+                <option>本地生活</option>
+                <option>旅行户外</option>
+                <option>运动健身</option>
+                <option>科技数码</option>
+                <option>娱乐影视</option>
+                <option>游戏动漫</option>
+                <option>情感生活</option>
+                <option>法律科普</option>
+                <option>家居装修</option>
+                <option>汽车</option>
+                <option>三农乡村</option>
+                <option>其他</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fanRange">账号粉丝量</label>
+              <select id="fanRange">
+                <option>0-100</option>
+                <option>100-1000</option>
+                <option selected>1000-1万</option>
+                <option>1万-10万</option>
+                <option>10万-100万</option>
+                <option>100万以上</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="title">视频标题 / 封面文案</label>
+            <input id="title" placeholder="例如：普通人 7 天学会剪辑，我把课程资料一次讲透" value="7 天搭好 AI 自动化剪辑流程，新手也能少走弯路" />
+          </div>
+
+          <div class="field">
+            <label for="script">口播稿 / 正文内容</label>
+            <textarea id="script" placeholder="粘贴准备发布的口播稿、正文内容或视频字幕...">我最近把选题、脚本、粗剪和字幕整理成了一套 AI 自动化剪辑流程，效率确实提升了不少。这期不承诺爆款，只拆解适合新手练习的步骤、容易踩坑的风险点，以及发布前怎么检查内容表达。</textarea>
+          </div>
+
+          <div class="field">
+            <label for="comment">评论区互动引导</label>
+            <input id="comment" placeholder="例如：评论区打 1，马上领取课程资料" value="你最想自动化哪一步？可以留言交流，我整理下一期实测。" />
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="scanBtn">开始安全检测</button>
+            <button class="btn secondary" id="sampleBtn">换一个样例</button>
+          </div>
+
+          <p class="footer-note">v2.0 · 支持抖音 / 小红书 / B站三平台规则差异化检测，风险分级输出。</p>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">AI 检测结果</h2>
+          <span class="badge" id="resultTime">尚未检测</span>
+        </div>
+        <div class="panel-body" id="result">
+          <div class="empty-hint">
+            输入创作者准备发布的标题、口播稿和评论引导后，点击「开始安全检测」。系统会从夸大承诺、敏感垂类、诱导互动、引战表达和平台体验风险几个角度给出判断。
+          </div>
+        </div>
+        <div id="historyTrendContainer" style="padding: 0 0 4px"></div>
+
+        <div class="tool-feedback" id="toolFeedback" data-tool-feedback-key="content_safety">
+          <div class="tool-feedback-head">
+            <div>
+              <div class="tool-feedback-title">这个检测结果对你有帮助吗？</div>
+              <div style="margin-top:3px">用于判断安全检测和改写建议是否真的能降低发布风险。</div>
+            </div>
+            <div class="tool-feedback-actions" aria-label="结果反馈">
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="up">👍 有帮助</button>
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="down">👎 没帮助</button>
+            </div>
+          </div>
+          <div class="tool-feedback-detail">
+            <div class="tool-feedback-question" id="toolFeedbackQuestion">哪里不够好？</div>
+            <div class="tool-feedback-reasons" id="toolFeedbackReasons"></div>
+            <textarea class="tool-feedback-input" id="toolFeedbackText" placeholder="也可以直接写一句具体反馈，例如：风险点说清楚了，但改写文案还不够像真人。"></textarea>
+            <div class="tool-feedback-save-row">
+              <div class="tool-feedback-note" id="toolFeedbackNote"></div>
+              <button class="btn ghost tool-feedback-save" id="toolFeedbackSaveBtn" type="button">保存补充说明</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin:12px 0 2px;padding:12px;border:1px solid rgba(14,165,233,.22);border-radius:8px;background:rgba(14,165,233,.06);font-size:13px;line-height:1.7;color:var(--muted)">
+          <strong style="display:block;color:var(--ink);font-size:14px">下一步动作</strong>
+          用安全改写后的版本发布。发布后把脚本和表现数据带到复盘诊断台，判断这条内容为什么跑起来或没跑起来。
+          <a href="../creator-postmortem-ai/index.html" style="display:inline-flex;margin-top:8px;color:var(--brand);font-weight:900;text-decoration:none">去复盘诊断 →</a>
+        </div>
+        <div style="margin:12px 0 2px;padding:12px;border:1px solid rgba(34,197,94,.22);border-radius:8px;background:rgba(34,197,94,.06);font-size:13px;line-height:1.7;color:var(--muted)">
+          <strong style="display:block;color:var(--ink);font-size:14px">核心指标</strong>
+          发布前返工率下降 · 安全改写采纳率 · 二次检测通过率 · 发布后风险反馈率。
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    /* ── 平台差异化规则库 ── */
+    const PLATFORM_RULES = {
+      douyin: [
+        {
+          type: "效果/收益夸大承诺", level: "high", priority: 1,
+          keywords: ["一定能", "保证有效", "稳赚", "必火", "百分百成功", "马上暴富", "包过", "一定会爆", "7 天学会", "秒变爆款", "躺赚"],
+          reason: "抖音「可信内容」政策明确禁止确定性效果/收益承诺，此类内容会触发「虚假宣传」自动审核标签，导致分发权重下降或内容不过审。在电商、教育、理财垂类尤其严格。",
+          fix: "用概率语言替代确定性：「这个方法帮我提升了X%效率」「很多人用了之后有改善」。加上适用条件：「适合有一定基础的新手参考」。"
+        },
+        {
+          type: "机械化互动诱导", level: "high", priority: 1,
+          keywords: ["评论区打 1", "点赞领取", "关注后发", "转发领取", "扣1领取", "私信数字", "回复数字领"],
+          reason: "抖音2024年以来对「指令性互动引导」打击力度显著加强，此类表达被判定为「刷量行为协助」，会直接降低内容推荐分发，对有一定粉丝量的账号影响更大。",
+          fix: "改为内容驱动的自然互动：「你有没有遇到过这种情况？评论区分享一下」「哪个方案更适合你，来投票」。"
+        },
+        {
+          type: "敏感资料/内部渠道暗示", level: "medium", priority: 2,
+          keywords: ["内部资料", "内部课程资料", "内部渠道", "独家内幕", "保密文件", "官方漏洞", "内部福利"],
+          reason: "暗示特殊信息来源易被判定为「虚假信息」或「欺骗性内容」，在教育、财经垂类尤其敏感，同时会降低用户信任度。",
+          fix: "明确说明资料来源和范围：「我整理了一份公开可查的学习资料清单」「这是我个人实践总结的经验」。"
+        },
+        {
+          type: "绝对化泛化表达", level: "low", priority: 3,
+          keywords: ["所有人都", "所有新手", "没人告诉你", "唯一正确方法", "彻底根治", "永远有效", "100%适用"],
+          reason: "绝对化表达被平台判定为「夸大事实」的风险信号，虽通常不直接触发内容下架，但会积累账号内容质量风险分，影响长期分发权重。",
+          fix: "加上适用条件和个人视角：「对我来说效果不错」「在这个场景下更适合」「大多数情况下」。"
+        },
+        {
+          type: "金融投资收益承诺", level: "high", priority: 1,
+          keywords: ["稳赚不赔", "翻倍收益", "荐股", "内幕消息", "无风险收益", "月入X万", "暴富方法", "躺赚项目"],
+          reason: "抖音对金融类内容实施最高级别审核，确定性收益承诺属于《证券法》监管范围内的违规表达，会触发内容强制下架，严重情况可导致账号封禁。",
+          fix: "只做知识科普：「这是一种投资方式，存在X类风险，具体操作请咨询专业理财顾问」。任何收益预测都必须加风险提示。"
+        },
+        {
+          type: "医疗健康绝对疗效", level: "high", priority: 1,
+          keywords: ["根治", "药到病除", "不用去医院", "偏方治百病", "永久根治", "彻底治好", "西医不告诉你"],
+          reason: "医疗类绝对疗效表达违反《广告法》医疗广告规定，抖音对健康垂类内容设有专项审核，此类内容不仅会被下架，还可能引发投诉举报。",
+          fix: "加上免责说明：「以下仅为个人生活习惯分享，不构成医疗建议，如有症状请及时就医」。健康内容的作用描述用「有助于」「可能改善」而非「治愈」「根治」。"
+        },
+        {
+          type: "争议政治/社会对立", level: "high", priority: 1,
+          keywords: ["阶级斗争", "底层反击", "割韭菜", "上层阴谋", "资本家"],
+          reason: "政治敏感和极端化社会对立表达是抖音的一级红线，此类内容触发即下架，并可能导致账号功能限制。",
+          fix: "把社会现象描述中性化：「这种现象值得关注」「背后有多方面原因」，避免极端化归因和煽动性表达。"
+        },
+        {
+          type: "引战攻击性表达", level: "low", priority: 3,
+          keywords: ["都是废物", "活该穷", "脑子有问题", "垃圾内容", "别再被骗了"],
+          reason: "人身攻击和极端化评价会触发评论区举报，降低内容安全分，长期积累可影响账号健康分，但通常不直接导致内容下架。",
+          fix: "用问题分析替代人身攻击：「这类方法的弊端在于…」「遇到这种情况应该警惕」。"
+        },
+        {
+          type: "未成年人风险内容", level: "high", priority: 1,
+          keywords: ["小学生专用", "儿童版", "未成年人操作", "孩子也能用"],
+          reason: "涉及未成年人的商业引导类内容受到严格监管，特别是教育、游戏、电商类内容。",
+          fix: "明确说明适用人群和监护人须知，儿童相关内容须符合《未成年人网络保护条例》相关规定。"
+        },
+      ],
+      xiaohongshu: [
+        {
+          type: "虚假种草/夸大效果", level: "high", priority: 1,
+          keywords: ["绝对好用", "必买神器", "神仙产品", "闭眼入不会踩雷", "100%有效", "无效退款保证", "全网最好用"],
+          reason: "小红书2023年起重点打击虚假种草，夸大产品效果被纳入「低质内容」标准，易被系统标记并限制笔记曝光。商业合作内容中夸大表达更受严格审查。",
+          fix: "用真实体验语言：「我用了三周，感觉皮肤有些改善，但每个人肤质不同，效果不能保证完全一样」。加上适用场景限定。"
+        },
+        {
+          type: "站外引流/私域导流", level: "high", priority: 1,
+          keywords: ["加微信联系", "私信我", "私域领取", "关注公众号", "点击链接购买", "加V", "联系方式在简介"],
+          reason: "小红书明令禁止任何形式的站外引流，检测到此类表达会直接限流，多次违规会触发账号功能限制甚至封号。这是小红书内容合规的核心红线。",
+          fix: "通过平台官方蒲公英/小红书合作功能进行商业联络，不在内容中放置任何站外联系方式。购买链接通过「好物推荐」功能发布。"
+        },
+        {
+          type: "医美整形推广", level: "high", priority: 1,
+          keywords: ["打玻尿酸", "微整形推荐", "割双眼皮哪家好", "瘦脸针效果", "水光针推荐", "整形日记"],
+          reason: "小红书对医美内容设有专属频道管控，需要发布方具有相应医疗机构资质认证。无资质账号发布医美推广内容会被直接删除。",
+          fix: "普通创作者可以分享「医美体验感受」但不做推荐，且须标注「个人体验仅供参考」，并注明相关风险。不要以任何形式帮助无资质机构做推广。"
+        },
+        {
+          type: "食品/保健品功效宣称", level: "high", priority: 1,
+          keywords: ["减肥特效", "排毒效果", "提升免疫力", "治疗疾病", "代餐减重保证", "美白效果显著"],
+          reason: "食品和保健品的功效宣称受《广告法》和《食品安全法》双重监管，夸大功效是高风险表达，在小红书美食、健康垂类被重点关注。",
+          fix: "保健品只能说「有助于」，不能说「能治疗」。引用的功效数据须有可溯源的正规来源，并加上「具体效果因人而异」的说明。"
+        },
+        {
+          type: "商业合作未标注广告", level: "high", priority: 1,
+          keywords: ["合作款", "联名限定", "品牌提供样品", "官方推荐", "品牌赞助"],
+          reason: "小红书要求所有商业合作内容在显著位置标注「广告」，2024年以来对「隐性广告」的处罚力度加大，未标注不仅违反平台规则，还可能触发广告法监管。",
+          fix: "在笔记开头或结尾明确标注【广告】【品牌合作】【赞助】，小红书有官方的「合作标记」功能，强烈建议使用。"
+        },
+        {
+          type: "机械化互动诱导", level: "medium", priority: 2,
+          keywords: ["点赞领取资料", "关注后私信发", "收藏后发给你", "评论区打1"],
+          reason: "小红书算法对互动诱导行为有判定机制，机械化引导会被系统识别为「互动作弊」，降低笔记的自然推荐权重。",
+          fix: "改为内容驱动的互动：「你有类似的经历吗？欢迎在评论区交流」「你更喜欢哪种方案？来告诉我」。"
+        },
+        {
+          type: "绝对化/夸张表达", level: "medium", priority: 2,
+          keywords: ["没人告诉你的真相", "唯一有效方法", "全网最实惠", "彻底解决"],
+          reason: "小红书用户社区氛围较为成熟，对夸张表达容忍度低，容易引发举报，降低笔记的社区信任分。",
+          fix: "加上个人视角和适用条件：「对我来说很适合，但不一定适合所有人」「这是我目前找到的最适合的方式」。"
+        },
+      ],
+      bilibili: [
+        {
+          type: "标题党/诱导点击", level: "medium", priority: 2,
+          keywords: ["震惊！", "不敢相信！", "史上最强", "全网最炸", "绝了绝了", "太离谱了", "你不知道的真相"],
+          reason: "B站对标题党有「标题质量」专项打分机制，影响稿件推荐权重，同时会降低创作者信用分。B站用户成熟度较高，标题党容易引发「标题党警告」弹幕和评论差评。",
+          fix: "改为直接描述内容的标题：「我测试了X工具30天，这是数据」「为什么Y方法对大多数人无效：原因分析」。"
+        },
+        {
+          type: "虚假承诺/夸大效果", level: "medium", priority: 2,
+          keywords: ["看完一定会", "保证你学会", "百分之百有效", "必定成功"],
+          reason: "B站用户群体理性度高，夸大承诺容易在评论区引发集体质疑和差评，对创作者口碑伤害明显，同时会积累账号内容质量风险分。",
+          fix: "改为数据驱动的理性表达：「我用这个方法后X指标提升了Y%」「在Z场景下有效，但需要满足A、B条件」。"
+        },
+        {
+          type: "金融投资推荐", level: "high", priority: 1,
+          keywords: ["稳赚不赔", "内幕消息", "必涨个股", "无风险套利", "暴富方法", "这只股票会涨"],
+          reason: "B站金融类内容需要发布账号具备相应资质，无资质进行收益承诺涉及《证券法》违规，会触发内容强制下架并上报监管。",
+          fix: "只做金融知识科普，任何收益相关内容必须加风险提示，不做个股推荐，不做收益预测。"
+        },
+        {
+          type: "版权/搬运敏感", level: "medium", priority: 2,
+          keywords: ["搬运自", "无授权转载", "侵权视频", "直接搬的"],
+          reason: "B站版权保护机制较为完善，版权方可直接在平台发起侵权投诉，被判定为侵权会触发稿件下架和账号信用分扣除。",
+          fix: "标注原始创作者和来源，并说明已获授权。建议通过正规渠道获取授权后再发布，搬运类内容须在显著位置注明来源。"
+        },
+        {
+          type: "学术不端/论文造假", level: "high", priority: 1,
+          keywords: ["论文代写", "学历造假", "考试答案", "枪手代答"],
+          reason: "涉及学术造假的内容在B站属于明确违规项，会导致内容直接下架，且可能引发监管层面的法律风险。",
+          fix: "学术类内容须以正规学习方法为主题，不涉及任何形式的学术不端引导。"
+        },
+        {
+          type: "互动要挟表达", level: "low", priority: 3,
+          keywords: ["不三连不更新", "一键三连才发下期", "充电才能看后续", "点赞过万才出"],
+          reason: "B站对强迫性互动要挟表达有专项判定，会降低稿件推荐权重，且B站高粘性用户社区对此类表达容忍度低，容易产生负面口碑。",
+          fix: "改为真诚的互动邀请：「如果这期对你有帮助，可以点个收藏方便回顾」「你有什么问题想让我在下期解答？」"
+        },
+        {
+          type: "商业合作未公示", level: "high", priority: 1,
+          keywords: ["品牌合作款", "赞助商提供", "品牌赞助"],
+          reason: "B站要求商业推广内容在视频开头或描述栏明确标注，且须通过B站花火平台接单，未公示视为违规，同时可能触发广告监管。",
+          fix: "在视频封面/开头显著位置标注【商业合作】，并在简介中说明品牌方信息。优先使用B站花火官方合作平台。"
+        },
+      ]
+    };
+
+    const PLATFORM_SAMPLES = {
+      douyin: [
+        { vertical: "教育培训", fanRange: "1000-1万", title: "普通人 7 天学会剪辑，我把课程资料一次讲透", script: "很多人学不会剪辑，是因为没掌握真正有效的方法。按我这套学习模板做，7 天内一定能做出爆款视频。评论区打 1，我直接发你内部课程资料。这个方法适合所有新手，照着做就能逆袭。", comment: "评论区打 1，马上领取课程资料" },
+        { vertical: "财经理财", fanRange: "100-1000", title: "这个理财方法让我收益翻倍，新手也能稳赚", script: "如果你现在还只会存钱，真的太亏了。这个方法没有什么风险，照着做收益翻倍不是问题。想要完整表格，点赞关注后我发你。", comment: "点赞关注后发完整表格" },
+        { vertical: "健康养生", fanRange: "1万-10万", title: "睡不好的人试试这个习惯，亲测有帮助", script: "我最近调整了睡前作息，减少咖啡因和夜间刷手机，睡眠状态确实稳定了一些。这个方法不替代医疗建议，如果长期失眠，还是建议找专业医生看看。", comment: "你一般几点睡？可以留言交流一下" }
+      ],
+      xiaohongshu: [
+        { vertical: "美妆测评", fanRange: "1000-1万", title: "闭眼入！这款粉底液绝对好用，100%有效控油", script: "姐妹们！这款粉底液真的是神仙产品，我用了一周皮肤状态好了很多。官方推荐，合作款限量发售，想要可以加我微信，私信发货比较方便。", comment: "想要链接的宝子私信我" },
+        { vertical: "护肤", fanRange: "10万-100万", title: "干皮救星！我的冬季护肤步骤分享", script: "最近天气干燥，分享一下我的护肤习惯。这些只是我个人的经验，干皮可以参考，但每个人肤质不同，适合我的不一定适合你。觉得有帮助的话可以点收藏～", comment: "你是什么肤质呢？留言聊聊" }
+      ],
+      bilibili: [
+        { vertical: "科技数码", fanRange: "1万-10万", title: "震惊！这款 AI 工具让效率翻倍，绝了", script: "最近发现一个不错的 AI 工具，用了之后感觉选题效率提升了不少。不是说它百分百有效，但对我这类内容创作者来说确实挺实用的。一键三连不更新，支持一下这期视频！", comment: "觉得有用的三连一下" },
+        { vertical: "知识科普", fanRange: "1000-1万", title: "用数据说话：AI 工具真的能帮创作者提效吗？", script: "我统计了自己最近30天的内容产出数据，对比使用 AI 工具前后的选题时间和脚本完成率。结论不是「一定能」，而是「在特定场景下确实有帮助」。这期分享我的实测过程。", comment: "你们在哪个环节感觉最耗时？" }
+      ]
+    };
+
+    const rewriteRules = [
+      ["7 天学会剪辑", "提升剪辑学习效率"],
+      ["7 天内一定能做出爆款视频", "7 天内更有机会掌握基础剪辑流程"],
+      ["爆款视频", "更完整的练习作品"],
+      ["我把课程资料一次讲透", "我把学习路径讲清楚"],
+      ["一定能", "有机会提升"],
+      ["一定", "更有机会"],
+      ["保证", "帮助提升"],
+      ["稳赚", "需要谨慎评估风险"],
+      ["收益翻倍", "优化收益认知"],
+      ["没有什么风险", "需要结合个人情况谨慎判断风险"],
+      ["评论区打 1", "可以在评论区说说你的具体阶段"],
+      ["点赞关注后", "如果你需要"],
+      ["马上领取", "可以获取"],
+      ["内部课程资料", "公开学习资料整理清单"],
+      ["内部资料", "公开资料整理清单"],
+      ["所有新手", "刚开始学习内容创作的新手"],
+      ["所有人", "部分人群"],
+      ["逆袭", "逐步改善现状"],
+      ["必火", "更容易提升内容表现"],
+      ["百分百", "更大概率"],
+      ["包过", "提升通过准备度"],
+      ["闭眼入", "值得参考"],
+      ["神仙产品", "效果不错的产品"],
+      ["绝对好用", "个人感觉好用"],
+      ["100%有效", "对我有帮助"],
+      ["加我微信", "可以在评论区沟通"],
+      ["私信发货", "通过平台购买"],
+      ["震惊", "分享一个发现"],
+      ["绝了", "效果不错"],
+      ["一键三连不更新", "如果觉得有帮助可以三连支持一下"],
+      ["不三连不更新", "如果这期有帮到你"]
+    ];
+
+    const $ = (selector) => selector.startsWith("#") || selector.startsWith(".")
+      ? document.querySelector(selector)
+      : document.getElementById(selector);
+    let scanCount = 0;
+    let pendingAnalysis = null;
+    let currentPlatform = "douyin";
+    let currentSampleIndex = { douyin: 0, xiaohongshu: 0, bilibili: 0 };
+
+    const HISTORY_KEY = "csc_history_v3";
+    const MAX_HISTORY = 8;
+
+    function saveCheckHistory(score, risk, platform) {
+      try {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+        const now = new Date();
+        history.unshift({
+          score,
+          risk,
+          platform,
+          time: now.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" }) + " " + now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
+        });
+        if (history.length > MAX_HISTORY) history.pop();
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      } catch(e) {}
+    }
+
+    function loadCheckHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch(e) { return []; }
+    }
+
+    function renderHistoryTrend(containerId) {
+      const history = loadCheckHistory();
+      const container = $(containerId);
+      if (!container) return;
+      if (history.length < 2) {
+        container.innerHTML = `<div class="history-trend"><div class="history-trend-head"><h3>📈 合规分历史趋势</h3></div><p class="trend-empty">完成 2 次以上检测后，这里会展示你的合规分变化趋势。</p></div>`;
+        return;
+      }
+      const recent = history.slice(0, 5).reverse();
+      const maxScore = 96;
+      const colorMap = score => score >= 80 ? "#0f8b6f" : score >= 60 ? "#b86d16" : "#c5443d";
+      const barsHtml = recent.map(item => {
+        const pct = Math.round((item.score / maxScore) * 100);
+        const color = colorMap(item.score);
+        return `<div class="trend-bar-wrap">
+          <div class="trend-bar-val" style="color:${color}">${item.score}</div>
+          <div class="trend-bar" style="height:${Math.max(8, pct * 0.44)}px;background:${color};opacity:.85"></div>
+          <div class="trend-bar-label">${item.time.split(" ")[0]}</div>
+        </div>`;
+      }).join("");
+      const latest = history[0].score;
+      const prev = history[1]?.score || latest;
+      const trend = latest > prev ? `↑ 比上次提升 ${latest - prev} 分` : latest < prev ? `↓ 比上次下降 ${prev - latest} 分` : "与上次持平";
+      const trendColor = latest >= prev ? "#0f8b6f" : "#c5443d";
+      container.innerHTML = `<div class="history-trend">
+        <div class="history-trend-head">
+          <h3>📈 合规分历史趋势</h3>
+          <span class="trend-status" style="color:${trendColor}">${trend}</span>
+        </div>
+        <div class="trend-bars">${barsHtml}</div>
+      </div>`;
+    }
+
+    /* ── 平台切换 ── */
+    document.getElementById("platformTabs").addEventListener("click", (e) => {
+      const btn = e.target.closest(".platform-tab");
+      if (!btn) return;
+      const platform = btn.dataset.platform;
+      if (platform === currentPlatform) return;
+      currentPlatform = platform;
+      document.querySelectorAll(".platform-tab").forEach(t => t.classList.toggle("active", t.dataset.platform === platform));
+      // 清空结果
+      $("result").innerHTML = `<div class="empty-hint">已切换到 ${btn.textContent.trim()} 规则库。输入内容后点击「开始安全检测」。</div>`;
+      $("resultTime").textContent = "尚未检测";
+    });
+
+    function collectText() {
+      return `${$("title").value} ${$("script").value} ${$("comment").value}`;
+    }
+
+    function analyze() {
+      const text = collectText().trim();
+      const scanBtn = $("scanBtn");
+
+      if (!text) {
+        $("resultTime").textContent = "等待输入";
+        $("result").innerHTML = `<div class="empty-hint">请先输入标题、口播稿或评论区互动引导。</div>`;
+        return;
+      }
+
+      if (pendingAnalysis) window.clearTimeout(pendingAnalysis);
+
+      scanCount += 1;
+      scanBtn.disabled = true;
+      scanBtn.textContent = "分析中...";
+      $("resultTime").textContent = `第 ${scanCount} 次检测 · 分析中`;
+      $("result").innerHTML = `
+        <div class="loading-state">
+          <div class="spinner" aria-hidden="true"></div>
+          <div>
+            <strong>正在分析内容风险</strong><br>
+            <span>匹配 ${currentPlatform === "douyin" ? "抖音" : currentPlatform === "xiaohongshu" ? "小红书" : "B站"} 平台规则，识别风险表达并生成改写建议...</span>
+          </div>
+        </div>
+      `;
+
+      pendingAnalysis = window.setTimeout(() => {
+        const latestText = collectText();
+        const rules = PLATFORM_RULES[currentPlatform] || PLATFORM_RULES.douyin;
+        const issues = rules.filter(rule => rule.keywords.some(keyword => latestText.includes(keyword)));
+        const highCount = issues.filter(i => i.level === "high").length;
+        const mediumCount = issues.filter(i => i.level === "medium").length;
+        const lowCount = issues.filter(i => i.level === "low").length;
+        const risk = highCount > 0 ? "高风险" : mediumCount > 0 ? "中风险" : lowCount > 0 ? "低风险" : "可发布";
+        const score = Math.max(35, 96 - highCount * 24 - mediumCount * 10 - lowCount * 4);
+
+        const timestamp = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        $("resultTime").textContent = `第 ${scanCount} 次检测 · ${timestamp}`;
+
+        // 粉丝量级影响评分：大号更严格
+        const fanRange = $("fanRange")?.value || "";
+        const fanPenalty = (fanRange === "10万-100万" || fanRange === "100万以上") ? Math.min(8, highCount * 3) : 0;
+        const adjustedScore = Math.max(35, score - fanPenalty);
+
+        renderResult({ issues, risk, score: adjustedScore, highCount, mediumCount, lowCount });
+        saveCheckHistory(adjustedScore, risk, currentPlatform);
+        // 闭环传递：合规检查 → 复盘诊断
+        try { localStorage.setItem('cg_pipeline_safety', JSON.stringify({ title: $("title").value.trim(), script: $("script").value.trim() })); } catch(e) {}
+        renderHistoryTrend("historyTrendContainer");
+        const resultPanel = $("result");
+        resultPanel.classList.remove("pulse");
+        void resultPanel.offsetWidth;
+        resultPanel.classList.add("pulse");
+        scanBtn.textContent = "检测完成";
+        scanBtn.disabled = false;
+        window.setTimeout(() => { scanBtn.textContent = "重新安全检测"; }, 650);
+      }, 1800);
+    }
+
+    function rewriteText(text) {
+      let output = text;
+      const changes = [];
+      rewriteRules.forEach(([before, after]) => {
+        if (output.includes(before)) {
+          output = output.replaceAll(before, after);
+          changes.push({ before, after });
+        }
+      });
+      return { text: output, changes, changed: changes.length > 0 };
+    }
+
+    function buildSafeCopy(titleRewrite, scriptRewrite, commentRewrite) {
+      return `【标题/封面文案】\n${titleRewrite.text}\n\n【口播稿/正文内容】\n${scriptRewrite.text}\n\n【评论区互动引导】\n${commentRewrite.text}`;
+    }
+
+    function overviewClass(risk) {
+      if (risk === "高风险") return "risk-high";
+      if (risk === "中风险") return "risk-medium";
+      return "risk-low";
+    }
+
+    function publishAdvice(risk) {
+      if (risk === "高风险") return "⛔ 先改写再发布";
+      if (risk === "中风险") return "⚠️ 建议微调后发布";
+      if (risk === "低风险") return "💡 可发布，建议优化";
+      return "✅ 可进入发布复核";
+    }
+
+    function getLevelLabel(level) {
+      if (level === "high") return `<span style="color:#c5443d;font-weight:900;font-size:11px">● 高风险</span>`;
+      if (level === "medium") return `<span style="color:#b86d16;font-weight:900;font-size:11px">● 中风险</span>`;
+      return `<span style="color:#5a8c7a;font-weight:900;font-size:11px">● 提示</span>`;
+    }
+
+    function getPlatformName() {
+      return { douyin: "抖音", xiaohongshu: "小红书", bilibili: "B站" }[currentPlatform] || "抖音";
+    }
+
+    function renderResult({ issues, risk, score }) {
+      const titleOriginal = $("title").value.trim();
+      const scriptOriginal = $("script").value.trim();
+      const commentOriginal = $("comment").value.trim();
+      const titleRewrite = rewriteText(titleOriginal);
+      const scriptRewrite = rewriteText(scriptOriginal);
+      const commentRewrite = rewriteText(commentOriginal);
+      const safeCopy = buildSafeCopy(titleRewrite, scriptRewrite, commentRewrite);
+      window.latestSafeCopy = safeCopy;
+
+      const diffItems = [
+        { label: "标题 / 封面文案", original: titleOriginal, rewrite: titleRewrite },
+        { label: "口播稿 / 正文内容", original: scriptOriginal, rewrite: scriptRewrite },
+        { label: "评论区互动引导", original: commentOriginal, rewrite: commentRewrite }
+      ];
+
+      const diffHtml = diffItems.map(item => `
+        <div class="diff-row">
+          <div class="diff-tag">
+            <span>${item.label}</span>
+            <span class="diff-status ${item.rewrite.changed ? "" : "clean"}">${item.rewrite.changed ? "已优化" : "无需修改"}</span>
+          </div>
+          <div class="diff-body">
+            <div class="diff-cell"><span>修改前</span><p>${highlightBefore(item.original, item.rewrite.changes)}</p></div>
+            <div class="diff-cell"><span>修改后</span><p>${highlightAfter(item.rewrite.text, item.rewrite.changes)}</p></div>
+          </div>
+        </div>
+      `).join("");
+
+      // 按风险等级排序：高→中→低
+      const sortedIssues = [...issues].sort((a, b) => (a.priority || 9) - (b.priority || 9));
+
+      const issueHtml = sortedIssues.length ? sortedIssues.map(issue => `
+        <li class="issue ${issue.level === "high" ? "high-risk" : ""}">
+          <span class="issue-dot"></span>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <strong>${issue.type}</strong>
+              ${getLevelLabel(issue.level)}
+            </div>
+            <p>${issue.reason}</p>
+            <p><b>建议：</b>${issue.fix}</p>
+          </div>
+        </li>
+      `).join("") : `
+        <li class="issue">
+          <span class="issue-dot" style="background:var(--green)"></span>
+          <div><strong>未发现明显风险表达</strong><p>当前内容在 ${getPlatformName()} 平台规则下整体较稳，可以继续检查事实来源、案例边界和评论区互动方式。</p></div>
+        </li>
+      `;
+
+      const focus = sortedIssues[0]?.type || "表达边界";
+
+      $("result").innerHTML = `
+        <div class="platform-note">📋 当前检测平台：${getPlatformName()} · 规则版本 v2.0</div>
+
+        <div class="result-overview">
+          <div class="overview-card ${overviewClass(risk)}">
+            <span>风险等级</span>
+            <strong>${risk}</strong>
+            <small>${publishAdvice(risk)}</small>
+          </div>
+          <div class="overview-card">
+            <span>命中风险点</span>
+            <strong>${issues.length} 个</strong>
+            <small>${issues.filter(i=>i.level==="high").length} 高 · ${issues.filter(i=>i.level==="medium").length} 中 · ${issues.filter(i=>i.level==="low").length} 低</small>
+          </div>
+          <div class="overview-card">
+            <span>可发布分</span>
+            <strong>${score}</strong>
+            <small>分数越高，发布风险越低</small>
+          </div>
+          <div class="overview-card">
+            <span>重点关注</span>
+            <strong style="font-size:16px">${focus}</strong>
+            <small>${$("vertical").value} · ${$("fanRange").value}</small>
+          </div>
+        </div>
+
+        <div class="summary block">
+          <h3>运营判断</h3>
+          <p>${buildSummary(risk, sortedIssues)}</p>
+        </div>
+
+        <div class="block">
+          <h3>风险点明细（按优先级排序）</h3>
+          <ul class="issue-list">${issueHtml}</ul>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h3>表达改写建议</h3>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="apply-all-btn" id="applyAllBtn" type="button">✅ 一键应用全部建议</button>
+              <button class="copy-btn" id="copyBtn" type="button">复制修改后全文案</button>
+            </div>
+          </div>
+          <div class="diff-list">${diffHtml}</div>
+          <div class="rewrite-box safe">
+            <span>修改后全文案</span>
+            <p>${escapeHtml(safeCopy).replaceAll("\n", "<br>")}</p>
+          </div>
+          <textarea class="copy-fallback" id="copyFallback" readonly>${escapeHtml(safeCopy)}</textarea>
+        </div>
+
+        <div class="block">
+          <h3>发布前自查清单（${getPlatformName()}）</h3>
+          <ul class="check-list">
+            ${getChecklist()}
+          </ul>
+        </div>
+      `;
+    }
+
+    function getChecklist() {
+      const base = [
+        "是否避免了「保证、一定、稳赚、包过」等确定性承诺？",
+        "是否说明了内容适用人群，而不是泛化到所有用户？",
+        "健康、财经、教育等敏感内容是否补充了边界说明？",
+        "修改后是否仍保留创作者原本的观点和内容吸引力？"
+      ];
+      const extra = {
+        douyin: ["评论引导是否自然有讨论价值，而不是机械诱导互动？"],
+        xiaohongshu: ["是否避免了站外引流表达（加微信/私信）？", "商业合作内容是否已标注【广告】？"],
+        bilibili: ["标题是否直接描述内容，避免标题党表达？", "商业合作是否在开头或简介处标注【商业合作】？"]
+      };
+      return [...base, ...(extra[currentPlatform] || [])].map(item => `<li><span class="tick">✓</span><span>${item}</span></li>`).join("");
+    }
+
+    function buildSummary(risk, issues) {
+      const pn = getPlatformName();
+      if (risk === "高风险") return `当前内容在 ${pn} 平台规则下存在 ${issues.filter(i=>i.level==="high").length} 个高风险表达，建议优先处理后再发布，否则可能影响内容分发权重或触发审核。`;
+      if (risk === "中风险") return `当前内容核心信息可以保留，但 ${pn} 平台对互动引导、适用范围或资料来源表达有明确限制，建议微调后发布，降低限流风险。`;
+      if (risk === "低风险") return `当前内容在 ${pn} 主要规则下表现稳妥，存在少量可优化的提示项，修改后可提升内容质量和用户体验。`;
+      return `当前内容在 ${pn} 平台规则下表现相对稳妥，适合进入发布前人工复核。后续可以持续关注评论区反馈和内容分发后的互动率变化。`;
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
+    }
+
+    function highlightBefore(text, changes) {
+      let output = escapeHtml(text);
+      changes.forEach(change => {
+        if (!text.includes(change.before)) return;
+        output = output.replaceAll(escapeHtml(change.before), `<mark style="background:#ffd7d2;color:#832d28;padding:1px 3px;border-radius:4px;">${escapeHtml(change.before)}</mark>`);
+      });
+      return output;
+    }
+
+    function highlightAfter(text, changes) {
+      let output = escapeHtml(text);
+      changes.forEach(change => {
+        if (!text.includes(change.after)) return;
+        output = output.replaceAll(escapeHtml(change.after), `<mark style="background:#ccefe2;color:#075646;padding:1px 3px;border-radius:4px;">${escapeHtml(change.after)}</mark>`);
+      });
+      return output;
+    }
+
+    async function copySafeCopy() {
+      const text = window.latestSafeCopy || "";
+      if (!text) return;
+      const btn = $("copyBtn");
+      const fallback = $("copyFallback");
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.cssText = "position:fixed;left:-9999px;top:0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        if (!copied && navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+        if (btn) { btn.textContent = "已复制"; setTimeout(() => btn.textContent = "复制修改后全文案", 1200); }
+      } catch {
+        if (fallback) { fallback.classList.add("active"); fallback.focus(); fallback.select(); }
+        if (btn) btn.textContent = "已选中全文案，按 Cmd+C";
+      }
+    }
+
+    function loadSample() {
+      const platformSamples = PLATFORM_SAMPLES[currentPlatform] || PLATFORM_SAMPLES.douyin;
+      const idx = currentSampleIndex[currentPlatform];
+      const sample = platformSamples[idx % platformSamples.length];
+      currentSampleIndex[currentPlatform] = (idx + 1) % platformSamples.length;
+      $("vertical").value = sample.vertical;
+      $("fanRange").value = sample.fanRange;
+      $("title").value = sample.title;
+      $("script").value = sample.script;
+      $("comment").value = sample.comment;
+      analyze();
+    }
+
+    $("scanBtn").addEventListener("click", analyze);
+
+    // 一键应用全部改写建议
+    document.addEventListener("click", (e) => {
+      if (e.target && e.target.id === "applyAllBtn") {
+        const safeCopy = window.latestSafeCopy || "";
+        if (!safeCopy) return;
+        const sections = safeCopy.split("\n\n");
+        sections.forEach(section => {
+          if (section.startsWith("【标题/封面文案】")) {
+            const val = section.replace("【标题/封面文案】\n", "").trim();
+            if ($("title")) $("title").value = val;
+          } else if (section.startsWith("【口播稿/正文内容】")) {
+            const val = section.replace("【口播稿/正文内容】\n", "").trim();
+            if ($("script")) $("script").value = val;
+          } else if (section.startsWith("【评论区互动引导】")) {
+            const val = section.replace("【评论区互动引导】\n", "").trim();
+            if ($("comment")) $("comment").value = val;
+          }
+        });
+        const btn = document.getElementById("applyAllBtn");
+        if (btn) { btn.textContent = "✅ 已应用！"; setTimeout(() => { btn.textContent = "✅ 一键应用全部建议"; }, 1500); }
+      }
+    });
+
+    // 闭环接收：选题 → 合规检查
+    try {
+      const _inc = JSON.parse(localStorage.getItem('cg_pipeline_topic') || 'null');
+      if (_inc?.title) {
+        $("title").value = _inc.title;
+        $("result").innerHTML = `<div class="empty-hint" style="border-color:rgba(15,139,111,.3);background:rgba(15,139,111,.05);color:#0a5f51">✅ 已从选题工具接收标题，可直接点击「开始安全检测」。</div>`;
+        localStorage.removeItem('cg_pipeline_topic');
+      }
+    } catch(e) {}
+
+    // 初始化渲染历史趋势
+    renderHistoryTrend("historyTrendContainer");
+    $("sampleBtn").addEventListener("click", loadSample);
+    document.addEventListener("click", (event) => {
+      if (event.target?.id === "copyBtn") copySafeCopy();
+    });
+
+    // 迭代日志折叠
+    document.getElementById("changelogToggle").addEventListener("click", () => {
+      const cl = document.getElementById("changelog");
+      const open = cl.classList.toggle("open");
+      document.getElementById("changelogToggle").setAttribute("aria-expanded", open);
+    });
+  
+
+  ;(() => {
+    const feedbackRoot = document.getElementById("toolFeedback");
+    if (!feedbackRoot) return;
+    const storageKey = "tool_feedback_content_safety_v1";
+    const reasons = { up: ["风险判断准确","改写可直接用","解释清楚","节省审核时间"], down: ["风险解释不清楚","改写不自然","误报太多","不好执行"] };
+    const $f = (id) => document.getElementById(id);
+    const escapeFeedback = (value) => String(value || "").replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
+    const readFeedback = () => { try { return JSON.parse(localStorage.getItem(storageKey)) || null; } catch { return null; } };
+    const writeFeedback = (payload) => localStorage.setItem(storageKey, JSON.stringify(payload));
+    const notifyFeedback = (message) => {
+      if (typeof showToast === "function") { showToast(message); return; }
+      const existing = document.getElementById("toolFeedbackToast");
+      const toast = existing || document.createElement("div");
+      toast.id = "toolFeedbackToast";
+      toast.textContent = message;
+      toast.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:80;max-width:340px;padding:12px 14px;border:1px solid rgba(15,159,179,.3);border-radius:8px;background:rgba(255,255,255,.97);box-shadow:0 16px 40px rgba(31,45,39,.14);font-size:13px;color:#15211f";
+      if (!existing) document.body.appendChild(toast);
+      clearTimeout(notifyFeedback.timer);
+      notifyFeedback.timer = setTimeout(() => toast.remove(), 2200);
+    };
+    const renderFeedback = (value, reason = "") => {
+      const saved = readFeedback();
+      feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.toolFeedback === value));
+      feedbackRoot.classList.toggle("show-detail", Boolean(value));
+      $f("toolFeedbackQuestion").textContent = value === "up" ? "你最认可哪一点？" : "哪里不够好？";
+      $f("toolFeedbackReasons").innerHTML = (reasons[value] || reasons.down).map((label) => '<button class="tool-feedback-reason' + (label === reason ? ' active' : '') + '" type="button" data-reason="' + escapeFeedback(label) + '">' + escapeFeedback(label) + '</button>').join("");
+      $f("toolFeedbackText").value = saved?.text || "";
+      $f("toolFeedbackNote").textContent = value ? (reason ? "已记录：" + reason : "已记录反馈，可以继续选择原因或写补充说明。") : "";
+    };
+    const saved = readFeedback();
+    if (saved?.value) renderFeedback(saved.value, saved.reason || "");
+    feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const payload = { value: btn.dataset.toolFeedback, reason: "", text: readFeedback()?.text || "", updatedAt: new Date().toISOString() };
+        writeFeedback(payload);
+        renderFeedback(payload.value, payload.reason);
+        notifyFeedback(payload.value === "up" ? "已记录：这个结果有帮助" : "已记录：这个结果没帮助");
+      });
+    });
+    $f("toolFeedbackReasons").addEventListener("click", (event) => {
+      const btn = event.target.closest(".tool-feedback-reason");
+      if (!btn) return;
+      const current = readFeedback() || { value: "down", text: "" };
+      const payload = { ...current, reason: btn.dataset.reason, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason);
+      notifyFeedback("已记录反馈原因：" + payload.reason);
+    });
+    $f("toolFeedbackSaveBtn").addEventListener("click", () => {
+      const current = readFeedback() || { value: "down", reason: "", text: "" };
+      const text = $f("toolFeedbackText").value.trim();
+      const hadText = Boolean((current.text || "").trim());
+      const payload = { ...current, text, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason || "");
+      const message = text ? "已保存补充说明" : hadText ? "已清空补充说明" : "补充说明为空，未保存新内容";
+      $f("toolFeedbackNote").textContent = message;
+      notifyFeedback(message);
+    });
+  })();
+
+</script>
+</body>
+</html>

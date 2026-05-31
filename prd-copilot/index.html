@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRD Copilot</title>
+  <style>
+    :root {
+      --ink: #171717;
+      --muted: #68635b;
+      --line: #d7d0c3;
+      --paper: #f5efe2;
+      --panel: #fffaf0;
+      --accent: #e14d2a;
+      --accent-dark: #a7341d;
+      --green: #1f7a5c;
+      --blue: #245f8f;
+      --gold: #a66f16;
+      --shadow: 0 22px 70px rgba(44, 35, 23, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        linear-gradient(90deg, rgba(23, 23, 23, 0.045) 1px, transparent 1px),
+        linear-gradient(rgba(23, 23, 23, 0.04) 1px, transparent 1px),
+        radial-gradient(circle at 18% 12%, rgba(225, 77, 42, 0.13), transparent 28%),
+        radial-gradient(circle at 86% 22%, rgba(36, 95, 143, 0.12), transparent 24%),
+        var(--paper);
+      background-size: 34px 34px, 34px 34px, auto, auto, auto;
+    }
+
+    button, textarea, input, select {
+      font: inherit;
+    }
+
+    .shell {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 26px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stamp {
+      width: 54px;
+      height: 54px;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #fff7e6;
+      box-shadow: 7px 7px 0 rgba(225, 77, 42, 0.25);
+      flex: 0 0 auto;
+    }
+
+    .stamp svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 68px);
+      letter-spacing: 0;
+      line-height: 0.9;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: rgba(255, 250, 240, 0.86);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.85fr) minmax(360px, 1fr) minmax(420px, 1.18fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.94);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      min-height: 76px;
+      padding: 17px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(100deg, #fff4dc, #fffaf0 58%, #eef5ef);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.1;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .number {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: var(--ink);
+      font-size: 14px;
+      box-shadow: 4px 4px 0 rgba(23, 23, 23, 0.15);
+      flex: 0 0 auto;
+    }
+
+    .panel-body {
+      padding: 17px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid #cfc4b3;
+      border-radius: 8px;
+      background: #fffdf7;
+      color: var(--ink);
+      outline: none;
+      padding: 12px;
+      transition: box-shadow 0.2s, border 0.2s, transform 0.2s;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(225, 77, 42, 0.12);
+    }
+
+    textarea {
+      min-height: 154px;
+      resize: vertical;
+      line-height: 1.58;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      min-height: 44px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 900;
+      transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      flex: 1;
+      color: #fffaf0;
+      background: var(--accent);
+      box-shadow: 0 12px 28px rgba(225, 77, 42, 0.26);
+    }
+
+    .primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .secondary {
+      color: var(--ink);
+      background: #ece1ce;
+      border: 1px solid #d8cab5;
+    }
+
+    .ghost {
+      color: var(--accent-dark);
+      background: #fff1e8;
+      border: 1px solid rgba(225, 77, 42, 0.24);
+    }
+
+    .score-board {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .score-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 15px;
+      background: #fffdf7;
+      min-height: 142px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .score-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -18px -32px auto;
+      width: 110px;
+      height: 110px;
+      border: 18px solid rgba(225, 77, 42, 0.08);
+      transform: rotate(20deg);
+    }
+
+    .score-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .score-value {
+      margin: 10px 0 4px;
+      font-size: 48px;
+      line-height: 1;
+      font-weight: 950;
+    }
+
+    .score-card p, .note, .empty {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .meter {
+      height: 12px;
+      border-radius: 999px;
+      background: #eadfca;
+      overflow: hidden;
+      margin-top: 13px;
+    }
+
+    .meter span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.45s ease;
+    }
+
+    .block {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf7;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .block h3 {
+      margin: 0 0 11px;
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 9px;
+      border-radius: 8px;
+      color: var(--accent-dark);
+      background: #fff0e8;
+    }
+
+    .list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .list li {
+      border: 1px solid #eadbc5;
+      border-radius: 8px;
+      background: #fff8ed;
+      padding: 10px;
+      color: #4f473e;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .list strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .question {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 9px;
+      align-items: start;
+    }
+
+    .question::before {
+      content: "?";
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: #fffaf0;
+      font-weight: 900;
+      font-size: 12px;
+      margin-top: 1px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 7px 9px;
+      background: #eef5ef;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .prd-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .prd-doc {
+      max-height: 720px;
+      overflow: auto;
+      padding-right: 5px;
+    }
+
+    .prd-section {
+      border-left: 4px solid var(--ink);
+      border-radius: 8px;
+      background: #fffdf7;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 13px;
+      margin-bottom: 11px;
+    }
+
+    .prd-section h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .prd-section p, .prd-section li {
+      color: #4e473d;
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .prd-section p {
+      margin: 0;
+    }
+
+    .prd-section ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .empty {
+      border: 1px dashed #cabda9;
+      border-radius: 8px;
+      padding: 16px;
+      background: rgba(255, 253, 247, 0.76);
+    }
+
+    .loading {
+      border: 1px dashed #cabda9;
+      border-radius: 8px;
+      min-height: 220px;
+      background: #fffdf7;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 20px;
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border: 4px solid #eadfca;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .copy-box {
+      display: none;
+      width: 100%;
+      min-height: 150px;
+      margin-top: 10px;
+      background: #fffdf7;
+    }
+
+    .copy-box.active {
+      display: block;
+    }
+
+    .pulse {
+      animation: pulse 0.72s ease;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(225, 77, 42, 0.3);
+      }
+      100% {
+        box-shadow: 0 0 0 16px rgba(225, 77, 42, 0);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 1160px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .prd-doc {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        padding: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .two, .score-board {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+    }
+    /* ── 全链路导航条 ── */
+    .pipeline-nav {
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.88);
+      overflow: hidden;
+    }
+    .pipeline-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+    .pipeline-label {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pipeline-steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+    .pipeline-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all .16s;
+      white-space: nowrap;
+    }
+    a.pipeline-step:hover {
+      border-color: var(--line);
+      color: var(--ink);
+      background: rgba(255,255,255,.8);
+    }
+    .pipeline-step.ps-current {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .ps-num { opacity: .7; font-size: 11px; }
+    .ps-arrow { color: var(--muted); font-size: 11px; opacity: .5; }
+    .pipeline-insight {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+      margin-left: auto;
+    }
+    @media (max-width: 720px) {
+      .pipeline-insight { display: none; }
+      .pipeline-inner { gap: 8px; }
+      .pipeline-steps { min-width: 0; overflow-x: auto; padding-bottom: 2px; }
+      .pipeline-step { flex: 0 0 auto; }
+    }
+    /* ── Changelog ── */
+    .changelog { margin-bottom: 14px; border: 1px solid var(--line); border-radius: 8px; background: #fafaf9; overflow: hidden; }
+    .changelog-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 16px; border: none; background: transparent; cursor: pointer; gap: 12px; text-align: left; }
+    .changelog-toggle-left { display: flex; align-items: center; gap: 10px; }
+    .changelog-badge { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; background: var(--accent); color: #fff; white-space: nowrap; }
+    .changelog-badge.old { background: #e5e7eb; color: #6b7280; }
+    .changelog-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .changelog-caret { font-size: 11px; color: #9ca3af; transition: transform .18s; flex-shrink: 0; }
+    .changelog.open .changelog-caret { transform: rotate(180deg); }
+    .changelog-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--line); }
+    .changelog.open .changelog-body { display: block; }
+    .changelog-versions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+    @media (max-width: 720px) { .changelog-versions { grid-template-columns: 1fr; } }
+    .cl-version { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .cl-version.current { border-color: rgba(225,77,42,.28); background: rgba(225,77,42,.03); }
+    .cl-version-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 12px; color: #9ca3af; }
+    .cl-list { margin: 0; padding: 0 0 0 16px; }
+    .cl-list li { font-size: 12px; line-height: 1.7; color: #6b7280; }
+    .cl-list li.good { color: #15803d; }
+    .cl-list li.bad { color: #991b1b; list-style: none; padding-left: 2px; }
+    .cl-list li.bad::before { content: "✗ "; }
+    .cl-reason { margin-top: 10px; padding: 10px 12px; border-radius: 6px; background: rgba(225,77,42,.05); font-size: 12px; line-height: 1.7; color: #9a3412; }
+    .cl-section-title { display: flex; align-items: center; gap: 8px; margin: 16px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .cl-section-title:first-child { margin-top: 4px; }
+    .cl-section-icon { font-size: 14px; }
+    .cl-rival-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .cl-rival-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: rgba(255,250,240,.78); transition: border-color .16s; }
+    .cl-rival-card:hover { border-color: rgba(225,77,42,.34); }
+    .cl-rival-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .cl-rival-icon { font-size: 20px; flex-shrink: 0; }
+    .cl-rival-name { color: var(--ink); font-size: 13px; font-weight: 800; line-height: 1.3; }
+    .cl-rival-label { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; background: rgba(23,23,23,.06); color: var(--muted); font-size: 10px; font-weight: 800; }
+    .cl-rival-list { margin: 0; padding: 0 0 0 16px; color: #5c554d; font-size: 12px; line-height: 1.75; }
+    .cl-rival-list li { margin-bottom: 2px; }
+    .cl-rival-list li.cl-rival-weak { color: var(--muted); opacity: .78; }
+    .cl-innovation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 9px; margin-bottom: 12px; }
+    .cl-inno-card { border: 1px solid rgba(225,77,42,.22); border-radius: 8px; padding: 12px; background: rgba(225,77,42,.045); transition: transform .14s, box-shadow .14s; }
+    .cl-inno-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(225,77,42,.1); }
+    .cl-inno-icon { margin-bottom: 6px; font-size: 18px; }
+    .cl-inno-title { margin-bottom: 4px; color: var(--ink); font-size: 12px; font-weight: 900; }
+    .cl-inno-desc { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .cl-core-insight { margin-bottom: 8px; padding: 12px 14px; border-left: 3px solid var(--accent); border-radius: 8px; background: rgba(225,77,42,.06); color: #9a3412; font-size: 12px; line-height: 1.7; }
+    .cl-core-label { margin-bottom: 5px; color: var(--accent); font-size: 11px; font-weight: 900; letter-spacing: .04em; }
+    .cl-roadmap { position: relative; margin-bottom: 12px; padding-left: 20px; }
+    .cl-roadmap::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; border-radius: 999px; background: linear-gradient(to bottom, var(--accent), var(--blue)); opacity: .42; }
+    .cl-roadmap-item { position: relative; padding: 8px 0 8px 14px; }
+    .cl-roadmap-dot { position: absolute; left: -17px; top: 12px; width: 8px; height: 8px; border: 2px solid rgba(255,255,255,.92); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px rgba(225,77,42,.25); }
+    .cl-roadmap-title { margin-bottom: 2px; color: var(--ink); font-size: 12px; font-weight: 800; }
+    .cl-roadmap-desc { color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .cl-metric-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border: 1px solid rgba(225,77,42,.18); border-radius: 8px; background: rgba(225,77,42,.045); }
+    .cl-metric-label { flex-shrink: 0; color: var(--accent); font-size: 11px; font-weight: 900; }
+    .cl-metric-tag { display: inline-flex; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.7); color: var(--muted); font-size: 10px; font-weight: 700; }
+    @media (max-width: 720px) { .cl-rival-grid { grid-template-columns: 1fr; } }
+    /* ── Risk warning ── */
+    .risk-warnings { margin: 12px 0 0; }
+    .risk-warnings h3 { font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
+    .risk-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; line-height: 1.6; }
+    .risk-item.risk-high { background: rgba(220,38,38,.06); border: 1px solid rgba(220,38,38,.18); color: #991b1b; }
+    .risk-item.risk-mid { background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.18); color: #92400e; }
+    .risk-item.risk-low { background: rgba(59,130,246,.06); border: 1px solid rgba(59,130,246,.18); color: #1e3a8a; }
+    .risk-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .risk-item strong { display: block; font-weight: 800; margin-bottom: 2px; }
+  
+
+    /* lightweight user feedback */
+    .tool-feedback{margin:12px 0 2px;padding:12px;border:1px solid rgba(15,159,179,.22);border-radius:8px;background:rgba(255,255,255,.72);font-size:12px;line-height:1.6;color:var(--muted, #65736f)}
+    .tool-feedback-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .tool-feedback-title{color:var(--ink, var(--text, #15211f));font-size:13px;font-weight:900}
+    .tool-feedback-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .tool-feedback-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:#fff;color:var(--muted, #65736f);font-size:12px;font-weight:900;transition:all .16s}
+    .tool-feedback-btn:hover{border-color:rgba(15,159,179,.38);color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));background:rgba(15,159,179,.06)}
+    .tool-feedback-btn.active{border-color:var(--brand, var(--accent, var(--cyan, #0f9fb3)));color:#fff;background:var(--brand, var(--accent, var(--cyan, #0f9fb3)));box-shadow:0 8px 18px rgba(15,159,179,.16)}
+    .tool-feedback-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line, var(--line-soft, #d6e0de))}
+    .tool-feedback.show-detail .tool-feedback-detail{display:block}
+    .tool-feedback-question{margin-bottom:8px;color:var(--muted, #65736f);font-weight:800}
+    .tool-feedback-reasons{display:flex;gap:7px;flex-wrap:wrap}
+    .tool-feedback-reason{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border:1px solid var(--line, var(--line-soft, #d6e0de));border-radius:999px;background:rgba(255,255,255,.74);color:var(--muted, #65736f);font-size:11px;font-weight:850}
+    .tool-feedback-reason:hover{border-color:rgba(15,159,179,.36);color:var(--ink, var(--text, #15211f))}
+    .tool-feedback-reason.active{border-color:rgba(22,122,90,.45);color:var(--green, #167a5a);background:rgba(22,122,90,.08)}
+    .tool-feedback-input{width:100%;margin-top:10px;min-height:72px;resize:vertical;background:#fff;font-size:12px;line-height:1.55}
+    .tool-feedback-save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+    .tool-feedback-note{color:var(--green, #167a5a);font-size:11px;font-weight:850}
+    .tool-feedback-save{min-height:28px;padding:0 11px;font-size:11px}
+
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="stamp" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 4h14v16H5z" stroke="#171717" stroke-width="2" />
+            <path d="M8 8h8M8 12h6M8 16h4" stroke="#e14d2a" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div>
+          <h1>PRD Copilot</h1>
+          <p class="subtitle">把一句模糊需求，澄清成需求卡、追问清单、指标和完整 PRD</p>
+        </div>
+      </div>
+      <div class="status-strip">
+        <span class="pill">P0 原型</span>
+        <span class="pill">纯前端</span>
+        <span class="pill">无需 API Key</span>
+      </div>
+    </header>
+
+    <!-- 完整链路导航 -->
+    <nav class="pipeline-nav" aria-label="创作者增长闭环">
+      <div class="pipeline-inner">
+        <span class="pipeline-label">创作者增长闭环</span>
+        <div class="pipeline-steps">
+          <a class="pipeline-step" href="../inspiration-station/index.html"><span class="ps-num">①</span><span class="ps-name">选题</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../content-safety-copilot/index.html"><span class="ps-num">②</span><span class="ps-name">创作合规</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../creator-postmortem-ai/index.html"><span class="ps-num">③</span><span class="ps-name">复盘诊断</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../creatorinsight-ai/index.html"><span class="ps-num">④</span><span class="ps-name">增长规划</span></a>
+          <span class="ps-arrow">→</span>
+          <a class="pipeline-step" href="../ab-test-designer/index.html"><span class="ps-num">⑤</span><span class="ps-name">实验验证</span></a>
+          <span class="ps-arrow" style="opacity:.25">·</span>
+          <span class="pipeline-step ps-current" aria-current="step"><span class="ps-num">+</span><span class="ps-name">PRD 方案化</span></span>
+          <a class="pipeline-step" href="../launcher.html"><span class="ps-name">返回合集</span></a>
+        </div>
+        <span class="pipeline-insight">💡 本页是方案延伸：把运营洞察转成可评审产品需求。</span>
+      </div>
+    </nav>
+
+    <!-- 迭代日志 + 竞品调研 -->
+    <div class="changelog" id="changelog">
+      <button class="changelog-toggle" id="changelogToggle" type="button" aria-expanded="false">
+        <div class="changelog-toggle-left">
+          <span class="changelog-badge">v2.0</span>
+          <span class="changelog-title">竞品对比 · 创新点 · 优化方向</span>
+        </div>
+        <span class="changelog-caret">▼</span>
+      </button>
+      <div class="changelog-body">
+        <div class="cl-section-title"><span class="cl-section-icon">📊</span>市面竞品现状</div>
+        <div class="cl-rival-grid">
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">📄</span><div><div class="cl-rival-name">飞书文档 AI</div><span class="cl-rival-label">协作文档</span></div></div><ul class="cl-rival-list"><li>强在在线协作、文档生成、团队评论和权限流转</li><li class="cl-rival-weak">默认用户已经知道需求边界，不负责判断需求是否成熟</li><li class="cl-rival-weak">更偏写作助手，缺少运营洞察到 PRD 的把关过程</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🧱</span><div><div class="cl-rival-name">Notion AI</div><span class="cl-rival-label">知识库写作</span></div></div><ul class="cl-rival-list"><li>适合结构化笔记、知识库问答和通用文档扩写</li><li class="cl-rival-weak">不面向产品评审场景，缺少指标、边界和风险提醒</li><li class="cl-rival-weak">输出质量依赖用户自己写清楚上下文</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🏢</span><div><div class="cl-rival-name">Confluence AI</div><span class="cl-rival-label">企业知识库</span></div></div><ul class="cl-rival-list"><li>强在企业知识沉淀、页面协作和已有资料检索</li><li class="cl-rival-weak">更适合成熟团队，不解决需求初期的模糊表达</li><li class="cl-rival-weak">运营同学仍要自己补齐用户、指标和范围取舍</li></ul></div>
+          <div class="cl-rival-card"><div class="cl-rival-header"><span class="cl-rival-icon">🤖</span><div><div class="cl-rival-name">通用 GPT PRD 模板</div><span class="cl-rival-label">Prompt 生成</span></div></div><ul class="cl-rival-list"><li>生成速度快，能快速铺出 PRD 章节和说明文字</li><li class="cl-rival-weak">容易把模糊想法包装成“看起来完整”的文档</li><li class="cl-rival-weak">缺少主动追问、成熟度评分和范围风险预警</li></ul></div>
+        </div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">💡</span>我们的创新点</div>
+        <div class="cl-innovation-grid">
+          <div class="cl-inno-card"><div class="cl-inno-icon">🧪</div><div class="cl-inno-title">需求成熟度评分</div><div class="cl-inno-desc">先判断输入是否够评审，而不是直接生成一篇长 PRD</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">❓</div><div class="cl-inno-title">动态追问问题</div><div class="cl-inno-desc">根据场景关键词生成追问，帮运营补齐目标用户和约束</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">⚠️</div><div class="cl-inno-title">需求风险预警</div><div class="cl-inno-desc">识别范围过大、指标不可量化、用户不清晰等评审风险</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">🧭</div><div class="cl-inno-title">运营到产品翻译</div><div class="cl-inno-desc">把运营洞察、用户痛点和业务目标翻译成产品需求语言</div></div>
+          <div class="cl-inno-card"><div class="cl-inno-icon">📌</div><div class="cl-inno-title">评审前把关</div><div class="cl-inno-desc">输出缺失信息、风险和 PRD 草稿，减少评审返工</div></div>
+        </div>
+        <div class="cl-core-insight"><div class="cl-core-label">核心判断</div>通用文档 AI 强在写作和协作，但通常默认用户已经知道自己要做什么。本工具选择更前置的位置：先判断需求成熟度，再把模糊想法翻译成可评审 PRD。</div>
+
+        <div class="cl-section-title"><span class="cl-section-icon">🚀</span>后续优化方向</div>
+        <div class="cl-roadmap">
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">LLM 连续澄清</div><div class="cl-roadmap-desc">从一次性追问升级为多轮澄清，直到需求边界可评审</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">冲突和范围膨胀识别</div><div class="cl-roadmap-desc">自动提示目标冲突、功能过多、指标不可验证等问题</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">导出到飞书 / Notion</div><div class="cl-roadmap-desc">生成后保留结构化字段，直接进入团队协作流程</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">评审记录回写</div><div class="cl-roadmap-desc">把评审意见和返工原因沉淀为下次需求生成的约束</div></div></div>
+          <div class="cl-roadmap-item"><div class="cl-roadmap-dot"></div><div class="cl-roadmap-content"><div class="cl-roadmap-title">链路数据串联</div><div class="cl-roadmap-desc">承接选题、复盘和实验结论，形成完整产品化方案证据</div></div></div>
+        </div>
+        <div class="cl-metric-bar"><span class="cl-metric-label">🎯 验证指标</span><span class="cl-metric-tag">追问补全率</span><span class="cl-metric-tag">PRD 评审通过率</span><span class="cl-metric-tag">人工修改比例</span><span class="cl-metric-tag">需求返工率</span></div>
+      </div>
+    </div>
+
+    <section class="workspace">
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title"><span class="number">1</span>输入模糊需求</h2>
+          <span class="pill" id="caseLabel">自定义输入</span>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="rawNeed">一句话需求</label>
+            <textarea id="rawNeed" placeholder="例如：我想做一个 AI 选题推荐功能，帮助创作者更快找到选题。">我想做一个 AI 自动化剪辑工具，帮短视频创作者输入脚本后自动生成剪辑方案、风险提示和发布建议。</textarea>
+          </div>
+
+          <div class="two">
+            <div class="field">
+              <label for="domain">业务场景</label>
+              <select id="domain">
+                <option>创作者工具</option>
+                <option>内容安全</option>
+                <option>数据分析</option>
+                <option>运营工具</option>
+                <option>企业效率</option>
+                <option>教育学习</option>
+                <option>电商转化</option>
+                <option>其他</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="stage">需求阶段</label>
+              <select id="stage">
+                <option>只有想法</option>
+                <option>已有业务背景</option>
+                <option>已有原型</option>
+                <option>准备评审</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="knownInfo">已知补充信息</label>
+            <textarea id="knownInfo" placeholder="可选：目标用户、当前痛点、业务目标、限制条件、想看的指标...">目标用户是刚开始稳定更新的创作者，痛点是剪辑耗时、发布前不知道哪里有风险。核心指标看方案采纳率、生成完成率和次日留存。</textarea>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="analyzeBtn">生成澄清与 PRD</button>
+            <button class="btn secondary" id="sampleBtn">换一个样例</button>
+          </div>
+          <p class="note" style="margin-top:12px;">建议输入具体业务场景，比如创作者成长、内容安全、AI 数据复盘。</p>
+        </div>
+      </section>
+
+      <section class="panel" id="clarifyPanel">
+        <div class="panel-header">
+          <h2 class="panel-title"><span class="number">2</span>需求澄清 Copilot</h2>
+          <span class="pill" id="clarifyStatus">等待分析</span>
+        </div>
+        <div class="panel-body" id="clarifyResult">
+          <div class="empty">
+            输入需求后，系统会判断需求成熟度，列出缺失信息、建议追问问题，并生成一张可进入 PRD 的需求卡。
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="prdPanel">
+        <div class="panel-header">
+          <h2 class="panel-title"><span class="number">3</span>PRD Builder</h2>
+          <div class="prd-actions">
+            <button class="btn ghost" id="copyPrdBtn" type="button">复制 PRD</button>
+            <button class="btn secondary" id="downloadBtn" type="button">导出 MD</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="prd-doc" id="prdResult">
+            <div class="empty">
+              PRD 会在这里生成。它会包含背景、目标用户、用户场景、产品目标、功能范围、流程、指标、风险和验收标准。
+            </div>
+          </div>
+          
+        <div class="tool-feedback" id="toolFeedback" data-tool-feedback-key="prd">
+          <div class="tool-feedback-head">
+            <div>
+              <div class="tool-feedback-title">这个 PRD 草稿对你有帮助吗？</div>
+              <div style="margin-top:3px">用于判断澄清问题和 PRD 输出是否能直接进入评审或继续改稿。</div>
+            </div>
+            <div class="tool-feedback-actions" aria-label="结果反馈">
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="up">👍 有帮助</button>
+              <button class="tool-feedback-btn" type="button" data-tool-feedback="down">👎 没帮助</button>
+            </div>
+          </div>
+          <div class="tool-feedback-detail">
+            <div class="tool-feedback-question" id="toolFeedbackQuestion">哪里不够好？</div>
+            <div class="tool-feedback-reasons" id="toolFeedbackReasons"></div>
+            <textarea class="tool-feedback-input" id="toolFeedbackText" placeholder="也可以直接写一句具体反馈，例如：PRD 框架完整，但验收标准还需要更细。"></textarea>
+            <div class="tool-feedback-save-row">
+              <div class="tool-feedback-note" id="toolFeedbackNote"></div>
+              <button class="btn ghost tool-feedback-save" id="toolFeedbackSaveBtn" type="button">保存补充说明</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:12px;border:1px solid rgba(37,99,235,.2);border-radius:8px;background:rgba(37,99,235,.055);font-size:13px;line-height:1.7;color:var(--muted)">
+            <strong style="display:block;color:var(--ink);font-size:14px">下一步动作</strong>
+            把生成的 PRD 作为需求评审草稿：它把运营洞察、实验结论和用户问题翻译成可讨论、可排期、可验收的产品需求。
+            <a href="../launcher.html" style="display:inline-flex;margin-top:8px;color:var(--accent);font-weight:900;text-decoration:none">返回合集 →</a>
+          </div>
+          <div style="margin-top:12px;padding:12px;border:1px solid rgba(225,77,42,.2);border-radius:8px;background:rgba(225,77,42,.055);font-size:13px;line-height:1.7;color:var(--muted)">
+            <strong style="display:block;color:var(--ink);font-size:14px">核心指标</strong>
+            需求澄清补全率 · PRD 评审通过率 · 人工修改比例 · 需求返工率。
+          </div>
+          <textarea class="copy-box" id="copyFallback" readonly></textarea>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const cases = [
+      {
+        label: "创作者选题",
+        domain: "创作者工具",
+        stage: "只有想法",
+        rawNeed: "我想做一个 AI 选题推荐功能，帮助创作者更快找到每天要拍什么。",
+        knownInfo: "目标用户是抖音中腰部创作者。希望推荐结果不只是标题，还要说明为什么适合这个账号。"
+      },
+      {
+        label: "内容安全",
+        domain: "内容安全",
+        stage: "已有业务背景",
+        rawNeed: "我想做一个发布前内容安全检测工具，帮助创作者检查标题、脚本和评论引导里的风险表达。",
+        knownInfo: "需要识别夸大承诺、诱导互动、财经健康等敏感表达，并给出更稳妥的改写建议。"
+      },
+      {
+        label: "数据复盘",
+        domain: "数据分析",
+        stage: "已有业务背景",
+        rawNeed: "我想做一个创作者内容复盘助手，根据播放、完播、点赞、评论、转粉数据给出下一轮创作建议。",
+        knownInfo: "用户不会看复杂数据，希望系统直接告诉他哪类内容有效、下次该优化标题还是脚本。"
+      },
+      {
+        label: "运营提效",
+        domain: "运营工具",
+        stage: "准备评审",
+        rawNeed: "我们想做一个运营需求池，统一收集业务同学提的功能需求，并帮助产品判断优先级。",
+        knownInfo: "需要支持需求录入、自动补充问题、优先级评分、PRD 草稿生成和评审摘要。"
+      }
+    ];
+
+    const fieldSignals = [
+      { key: "targetUser", label: "目标用户", words: ["用户", "创作者", "运营", "团队", "学生", "商家", "内容团队", "协作者"] },
+      { key: "problem", label: "用户痛点", words: ["痛点", "问题", "困难", "不知道", "不会", "成本", "风险", "效率", "麻烦"] },
+      { key: "goal", label: "产品目标", words: ["目标", "提升", "降低", "提高", "帮助", "减少", "转化", "增长"] },
+      { key: "scope", label: "功能范围", words: ["功能", "支持", "输入", "输出", "检测", "推荐", "生成", "看板", "复制"] },
+      { key: "metric", label: "指标", words: ["指标", "采纳率", "发布率", "完播率", "转粉", "点击", "留存", "满意度", "转化率"] },
+      { key: "risk", label: "风险边界", words: ["风险", "边界", "限制", "合规", "安全", "不包含", "失败", "异常"] },
+      { key: "validation", label: "验收标准", words: ["验收", "判断", "成功", "有效", "验证", "通过", "测试"] }
+    ];
+
+    const domainPresets = {
+      "创作者工具": {
+        user: "抖音中腰部创作者",
+        problem: "创作者缺少稳定选题来源，难以判断选题是否适合自己的账号阶段。",
+        goal: "提升选题效率、发布频率和内容质量。",
+        primaryMetric: "推荐后发布率"
+      },
+      "内容安全": {
+        user: "需要发布短视频内容的创作者和内容运营",
+        problem: "创作者不清楚哪些表达存在平台风险，也不知道如何改得更稳妥。",
+        goal: "降低发布前合规判断成本，并提升风险提示的可执行性。",
+        primaryMetric: "有效改写采纳率"
+      },
+      "数据分析": {
+        user: "需要复盘内容表现的创作者和运营人员",
+        problem: "用户能看到数据，但难以从数据中判断下一轮应该优化什么。",
+        goal: "把复杂数据转化为清晰的内容复盘结论和下一步动作。",
+        primaryMetric: "复盘建议采纳率"
+      },
+      "运营工具": {
+        user: "业务运营、产品经理和协作团队",
+        problem: "需求来源分散、表述不完整，导致评审和排期成本高。",
+        goal: "提高需求录入质量和产品评审效率。",
+        primaryMetric: "需求一次评审通过率"
+      },
+      "企业效率": {
+        user: "企业内部协作人员",
+        problem: "跨团队任务信息不完整，协作过程容易反复沟通。",
+        goal: "提升任务对齐效率和交付透明度。",
+        primaryMetric: "任务一次澄清完成率"
+      },
+      "教育学习": {
+        user: "学习者和教学运营",
+        problem: "学习目标和学习路径不清晰，难以持续反馈和调整。",
+        goal: "帮助用户形成可执行的学习计划和反馈闭环。",
+        primaryMetric: "学习计划完成率"
+      },
+      "电商转化": {
+        user: "电商商家和转化运营",
+        problem: "用户决策链路长，商品卖点和转化动作不清晰。",
+        goal: "提升商品表达效率和转化路径完成率。",
+        primaryMetric: "商品详情页转化率"
+      },
+      "其他": {
+        user: "目标业务用户",
+        problem: "需求仍处于早期，需要进一步明确用户、场景和成功标准。",
+        goal: "把模糊想法转化为可评审的产品方案。",
+        primaryMetric: "需求成熟度提升率"
+      }
+    };
+
+    const $ = (selector) => selector.startsWith("#") || selector.startsWith(".")
+      ? document.querySelector(selector)
+      : document.getElementById(selector);
+    let caseIndex = -1;
+    let latestPrdMarkdown = "";
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function loadCase(index = 0) {
+      const item = cases[index % cases.length];
+      caseIndex = index % cases.length;
+      $("caseLabel").textContent = item.label;
+      $("domain").value = item.domain;
+      $("stage").value = item.stage;
+      $("rawNeed").value = item.rawNeed;
+      $("knownInfo").value = item.knownInfo;
+      setTimeout(() => build(), 300);
+    }
+
+    function analyzeCompleteness(text) {
+      const matched = fieldSignals.map(signal => ({
+        ...signal,
+        hit: signal.words.some(word => text.includes(word))
+      }));
+      const hitCount = matched.filter(item => item.hit).length;
+      const lengthBonus = Math.min(16, Math.floor(text.length / 32));
+      const score = Math.min(96, Math.max(18, hitCount * 11 + lengthBonus + 12));
+      const missing = matched.filter(item => !item.hit);
+      return { matched, missing, score };
+    }
+
+    function extractFeature(rawNeed, domain) {
+      const clean = rawNeed.replace(/[。！？!?]/g, " ").trim();
+      const patterns = ["我想做一个", "我们想做一个", "想做一个", "做一个", "需要一个", "希望做一个"];
+      let feature = clean;
+      patterns.forEach(pattern => {
+        if (feature.includes(pattern)) {
+          feature = feature.split(pattern).pop();
+        }
+      });
+      feature = feature.split(/[，,；;]/)[0].trim();
+      if (!feature || feature.length > 26) return `${domain}智能助手`;
+      return feature;
+    }
+
+    function buildQuestions(missing, preset, feature, rawNeed, knownInfo) {
+      // 动态追问：根据缺失要素 + 已有输入内容生成更有针对性的问题
+      const hasAI = /AI|人工智能|大模型|算法/.test(rawNeed + knownInfo);
+      const hasData = /数据|分析|指标|统计/.test(rawNeed + knownInfo);
+      const isB2C = /用户|创作者|消费者|学生|买家/.test(rawNeed + knownInfo);
+      const isB2B = /团队|企业|运营|管理|协作/.test(rawNeed + knownInfo);
+
+      const base = {
+        targetUser: isB2B
+          ? `这个功能服务的是哪个角色？是提需求的业务同学、审需求的产品经理，还是使用结果的执行团队？不同角色的核心痛点完全不同。`
+          : `「${feature}」优先服务谁？是刚开始的新手用户，还是有一定经验的进阶用户？两者对功能的期望和使用门槛不同，会影响整个产品设计方向。`,
+        problem: hasAI
+          ? `用户在没有这个 AI 功能之前，是怎么解决这个问题的？人工操作的哪一步最耗时、最容易出错？AI 介入后，这一步能减少多少工作量？`
+          : `「${feature}」解决的用户痛点，在日常场景里有多高频？用户是每天遇到、每周遇到，还是偶发情况？高频痛点才值得做 MVP 验证。`,
+        goal: hasData
+          ? `你希望这个功能最终改善哪个数据指标？是提高某个完成率、缩短某个时间成本，还是降低某个错误率？用一个最核心的指标定义成功。`
+          : `这个功能上线后，30天内怎么判断它是否成功？是看使用次数、用户留存，还是下游转化？定义好"成功"才能设计灰度验证方案。`,
+        scope: `「${feature}」的 MVP 第一版，哪 3 个核心动作是必须做的？哪些功能看起来重要但第一版可以不做？明确 not-do-list 比 to-do-list 更难，但更关键。`,
+        metric: `${preset.primaryMetric} 是否适合作为北极星指标？它的分子是什么、分母是什么？如何从日常操作数据中取到这个数字？`,
+        risk: hasAI
+          ? `当 AI 给出错误建议时，用户该如何识别和修正？产品层面是否需要设计「AI 置信度说明」或「人工兜底」机制？`
+          : `这个功能如果数据出错、接口超时或者用户输入异常，会发生什么？是否需要设计重试、降级或提示机制？`,
+        validation: `上线前需要通过哪些测试路径才能放心灰度？最短路径：核心功能正常跑通 + 3个边界异常处理 + 移动端适配。你的验收标准是这个吗？`
+      };
+      return missing.slice(0, 6).map(item => base[item.key]).filter(Boolean);
+    }
+
+    function detectRisks(rawNeed, knownInfo) {
+      const fullText = rawNeed + " " + knownInfo;
+      const risks = [];
+
+      // 风险1：范围过大（包含过多功能动词）
+      const actionVerbs = fullText.match(/支持|实现|完成|生成|分析|推荐|检测|管理|统计|展示|记录|追踪|自动/g) || [];
+      if (actionVerbs.length >= 5) {
+        risks.push({ type: "high", icon: "⚠️", title: "功能范围可能过大", desc: `需求中包含 ${actionVerbs.length} 个功能动词（${actionVerbs.slice(0,4).join("、")}…），MVP 建议聚焦 2-3 个核心动作，其余移到 v2 backlog。` });
+      }
+
+      // 风险2：指标不可量化
+      const hasMetric = /\d+%|提升.*倍|缩短.*[分秒小时]|增加.*[条个万]/.test(fullText);
+      const hasMetricWord = /指标|数据|率|量|时间|成本/.test(fullText);
+      if (!hasMetric && hasMetricWord) {
+        risks.push({ type: "mid", icon: "📊", title: "成功指标缺少具体数字", desc: "提到了指标相关概念，但没有具体数字目标。建议补充可量化的成功标准，例如「采纳率提升至30%」或「操作时间从2小时降至20分钟」。" });
+      } else if (!hasMetricWord) {
+        risks.push({ type: "mid", icon: "📊", title: "未明确量化的成功标准", desc: "没有明确的衡量指标，评审和验收时容易产生分歧。建议补充一个北极星指标和至少一个过程指标。" });
+      }
+
+      // 风险3：用户不明确
+      const userWords = /用户|创作者|运营|商家|学生|团队|消费者|客户|博主/.test(fullText);
+      if (!userWords) {
+        risks.push({ type: "high", icon: "👥", title: "目标用户不明确", desc: "需求中没有明确描述目标用户是谁。功能设计、交互逻辑和成功指标都依赖于用户定义，建议在提交评审前补充。" });
+      }
+
+      // 风险4：AI依赖但无降级方案
+      const hasAI = /ai|人工智能|智能|自动|机器学习/.test(fullText.toLowerCase());
+      const hasFallback = /降级|兜底|手动|失败|异常|备选/.test(fullText);
+      if (hasAI && !hasFallback) {
+        risks.push({ type: "low", icon: "🤖", title: "AI功能缺少降级方案描述", desc: "需求依赖AI能力，但没有提到AI效果不佳或服务中断时的降级处理方案。建议补充兜底逻辑，避免上线后用户体验断层。" });
+      }
+
+      return risks;
+    }
+
+    function buildRequirementCard(feature, preset, rawNeed, knownInfo, completeness) {
+      // 从原始需求中提取更多上下文信息
+      const allText = `${rawNeed} ${knownInfo}`;
+      const hasMetricHint = /提升|降低|提高|减少|增加/.test(allText);
+      const metricHint = hasMetricHint
+        ? allText.match(/(?:提升|降低|提高|减少|增加)[^，。]{0,20}/)?.[0] || preset.primaryMetric
+        : preset.primaryMetric;
+
+      const problemText = knownInfo && /痛点|问题|困难|不知道|浪费/.test(knownInfo)
+        ? knownInfo.split(/[，。；!?]/)[0]
+        : preset.problem;
+
+      const goalText = knownInfo && /目标|希望|想要|提升/.test(knownInfo)
+        ? knownInfo.split(/[，。；!?]/)[1] || preset.goal
+        : preset.goal;
+
+      return {
+        title: feature,
+        user: preset.user,
+        problem: problemText,
+        goal: goalText,
+        mvp: [
+          `用户输入「${feature}」所需的核心信息（场景、目标、约束条件）`,
+          "系统基于规则/AI生成结构化分析结果，并按优先级排列可执行建议",
+          "用户对结果进行确认/修改/导出，进入下一步执行流程"
+        ],
+        metric: metricHint,
+        confidence: completeness.score >= 75 ? "较高（可进入评审）" : completeness.score >= 55 ? "中等（建议补充缺失项）" : "偏低（需要进一步澄清）",
+        source: `${rawNeed}${knownInfo ? "\n补充：" + knownInfo : ""}`
+      };
+    }
+
+    function renderClarify(completeness, questions, card) {
+      const missingHtml = completeness.missing.length
+        ? completeness.missing.map(item => `<li><strong>${item.label}</strong>当前需求中没有明确表达，建议评审前补充。</li>`).join("")
+        : `<li><strong>信息较完整</strong>当前需求已经覆盖主要 PRD 要素，可以进入方案细化。</li>`;
+      const questionHtml = questions.map(question => `<li class="question"><span>${escapeHtml(question)}</span></li>`).join("");
+      const cardHtml = `
+        <li><strong>用户</strong>${escapeHtml(card.user)}</li>
+        <li><strong>问题</strong>${escapeHtml(card.problem)}</li>
+        <li><strong>目标</strong>${escapeHtml(card.goal)}</li>
+        <li><strong>MVP</strong>${card.mvp.map(escapeHtml).join("；")}</li>
+        <li><strong>核心指标</strong>${escapeHtml(card.metric)}</li>
+      `;
+
+      const risks = detectRisks($("rawNeed").value.trim(), $("knownInfo").value.trim());
+      const riskHtml = risks.length ? `
+        <div class="risk-warnings">
+          <h3>⚡ 需求风险预警（${risks.length} 项）</h3>
+          ${risks.map(r => `<div class="risk-item risk-${r.type}"><span class="risk-icon">${r.icon}</span><div><strong>${r.title}</strong>${escapeHtml(r.desc)}</div></div>`).join("")}
+        </div>` : `<div style="padding:8px 0;font-size:12px;color:#6b7280">✅ 未检测到明显需求风险，可继续细化。</div>`;
+
+      $("clarifyStatus").textContent = `成熟度 ${completeness.score}/100`;
+      $("clarifyResult").innerHTML = `
+        <div class="score-board">
+          <div class="score-card">
+            <span class="score-label">需求成熟度</span>
+            <div class="score-value">${completeness.score}</div>
+            <p>置信度：${card.confidence}。分数越高，越适合进入 PRD 评审。</p>
+            <div class="meter"><span style="width:${completeness.score}%"></span></div>
+          </div>
+          <div class="score-card">
+            <span class="score-label">已识别要素</span>
+            <div class="chips">
+              ${completeness.matched.filter(item => item.hit).map(item => `<span class="chip">${item.label}</span>`).join("") || `<span class="chip">仅有初始想法</span>`}
+            </div>
+          </div>
+        </div>
+        ${riskHtml}
+        <div class="block">
+          <h3>缺失信息</h3>
+          <ul class="list">${missingHtml}</ul>
+        </div>
+        <div class="block">
+          <h3>建议追问（基于你的具体输入生成）</h3>
+          <ul class="list">${questionHtml}</ul>
+        </div>
+        <div class="block">
+          <h3>需求卡</h3>
+          <ul class="list">${cardHtml}</ul>
+        </div>
+      `;
+      $("clarifyPanel").classList.remove("pulse");
+      void $("clarifyPanel").offsetWidth;
+      $("clarifyPanel").classList.add("pulse");
+    }
+
+    function prdSections(feature, domain, stage, preset, card, questions, rawNeed, knownInfo) {
+      const allText = `${rawNeed} ${knownInfo || ""}`;
+      const hasAI = /AI|人工智能|大模型|智能/.test(allText);
+      const hasMobile = /移动端|手机|App|小程序/.test(allText);
+      const hasB2B = /团队|企业|协作|运营同学|产品经理/.test(allText);
+
+      // 动态提取核心动词描述
+      const actionVerbs = [];
+      if (/输入|填写|上传/.test(allText)) actionVerbs.push("信息输入");
+      if (/生成|输出|推荐/.test(allText)) actionVerbs.push(`AI/规则生成${hasAI?"（大模型）":"（规则引擎）"}`);
+      if (/复制|导出|保存|分享/.test(allText)) actionVerbs.push("结果导出与使用");
+      if (!actionVerbs.length) actionVerbs.push("需求输入", "系统分析", "结果输出");
+
+      return [
+        {
+          title: "1. 背景与问题",
+          body: `在${domain}场景下，${preset.user}面临的核心问题是：${card.problem} 当前阶段（${stage}）下，解决这个问题的主要制约在于缺乏高效的工具支持。「${feature}」旨在通过结构化的输入 → 分析 → 输出流程，将原本依赖人工判断的工作转化为可规模化执行的产品机制。`
+        },
+        {
+          title: "2. 目标用户",
+          list: [
+            `核心用户：${card.user}${hasB2B ? "（需区分提需求方和使用结果方）" : ""}`,
+            `用户核心痛点：${card.problem}`,
+            `当前解法：用户在没有此工具时，通常依靠${hasAI ? "人工经验判断" : "手动整理和沟通"}，效率低且难以标准化`,
+            `需求阶段：${stage}`
+          ]
+        },
+        {
+          title: "3. 用户核心场景",
+          list: [
+            `触发场景：${hasB2B ? "业务同学有新需求但表达模糊" : `用户有「${feature}」相关的实际需求，但不知道如何开始或如何做得更好`}`,
+            `操作场景：用户通过${hasMobile ? "移动端" : "Web端"}完成信息输入，系统实时生成分析结果`,
+            `结果使用场景：用户基于生成结果做决策（${hasB2B ? "进入评审、与研发对齐" : "直接执行或持续迭代"}）`,
+            `边界场景：输入不完整时，系统给出引导提示而非直接失败`
+          ]
+        },
+        {
+          title: "4. 产品目标（按优先级）",
+          list: [
+            `P0（核心）：${card.goal}`,
+            `P1（重要）：将用户操作成本降至 ${hasB2B ? "单次需求梳理 < 10 分钟" : "单次使用 < 3 分钟"}，降低使用门槛`,
+            `P2（体验）：输出结果的可读性和可执行性达到${hasB2B ? "可直接带入评审会" : "用户无需二次加工直接使用"}的水平`,
+            `核心指标：${card.metric}`
+          ]
+        },
+        {
+          title: "5. MVP 功能范围（v1.0）",
+          list: [
+            ...actionVerbs.map((v, i) => `F${i+1}（必做）：${v}`),
+            `F${actionVerbs.length+1}（必做）：异常状态处理（空输入提示、网络超时降级、边界条件兜底）`,
+            `F${actionVerbs.length+2}（二期）：${hasAI ? "个性化推荐（基于历史使用数据优化生成质量）" : "批量处理和历史记录查询"}`,
+            "not-do list（第一版明确不做）：用户账号体系、复杂权限管理、实时协作编辑"
+          ]
+        },
+        {
+          title: "6. 用户流程（主路径）",
+          list: [
+            "Step 1：用户进入页面，看到输入区域和操作引导",
+            `Step 2：用户填写核心信息（${domain === "创作者工具" ? "账号定位、数据指标、内容需求" : "需求描述、业务背景、补充信息"}）`,
+            `Step 3：点击生成，系统展示 loading 状态（建议 < 2s）`,
+            "Step 4：结果按优先级/分类展示，用户可逐项查看",
+            "Step 5：用户对结果进行修改/确认，选择复制/导出",
+            "Step 6（异常路径）：如输入不完整，系统提示具体缺失项，引导用户补充"
+          ]
+        },
+        {
+          title: "7. 功能需求（按优先级）",
+          list: [
+            `P0 · 核心输入：支持用户输入「${feature}」所需的${domain === "创作者工具" ? "账号画像、内容数据、目标设定" : "需求描述、业务场景、已知背景"}，字段有明确 placeholder 引导`,
+            hasAI ? `P0 · AI 分析：调用大模型对输入进行语义理解，输出结构化分析结果，并在每条建议上标注置信度和判断依据` : `P0 · 规则分析：基于预设规则对输入进行分析，输出分级结果（高优先级/中等/提示）`,
+            "P0 · 结果展示：按重要性分层显示分析结果，每条结论带有可解释的证据依据",
+            "P0 · 导出功能：支持复制到剪贴板和导出 Markdown 格式文件",
+            `P1 · 空输入校验：必填字段为空时，精确提示「哪个字段缺失，填写后能改善什么」，而不是通用的「请填写完整」`,
+            `P1 · ${hasMobile ? "移动端适配：" : "响应式布局："}确保核心功能在移动端可用，布局不错位`
+          ]
+        },
+        {
+          title: "8. 指标体系",
+          list: [
+            `北极星指标：${card.metric}（定义：${card.metric.includes("率") ? "分子 = 符合预期的结果数，分母 = 总生成次数" : "单位时间内完成的核心操作数"}）`,
+            "过程指标（衡量漏斗转化）：功能进入率 → 输入完成率 → 结果查看率 → 导出/复制率",
+            "质量指标（衡量结果有效性）：输出内容满意度（用户打分）、结果被使用率（导出率 proxy）",
+            "体验指标（衡量流畅度）：首次结果展示时间 < 2s，错误/空状态覆盖率 100%",
+            `灰度验证方案：优先邀请 ${hasB2B ? "5-10名产品运营同学内测" : "目标用户群体中20-50名用户"}，2周内收集定性反馈，以「会不会推荐给同事/朋友」为核心测量维度`
+          ]
+        },
+        {
+          title: "9. 风险与边界",
+          list: [
+            hasAI ? "AI 幻觉风险：大模型可能生成不准确的建议，须在 UI 层标注「AI 建议仅供参考，请结合实际情况判断」" : "规则引擎边界：基于预设规则的分析有盲区，极端输入可能导致结果偏差，须建立用户反馈机制持续优化规则库",
+            `${domain === "内容安全" ? "误报率控制：过高的误报率会导致用户失去信任，建议在规则命中时显示「置信度」而非直接判定违规" : "输入质量依赖：输出质量与输入信息的完整度强相关，须引导用户补充关键信息"}`,
+            "数据隐私：用户输入的需求描述和业务信息须明确告知不会被存储或用于模型训练",
+            "降级策略：当核心依赖服务（API/规则引擎）超时或出错时，展示友好的错误提示并提供基础功能降级版本"
+          ]
+        },
+        {
+          title: "10. 验收标准（灰度上线前必过）",
+          list: [
+            "✓ 主路径跑通：完整走完「输入 → 生成 → 导出」全流程，结果符合预期",
+            "✓ 空/异常输入：测试5类边界输入（空输入、超长输入、特殊字符、极端值、重复提交），系统均有合理处理",
+            `✓ 结果质量：随机抽取10组典型输入，至少8组的输出结果达到「可直接使用」标准`,
+            `✓ 性能：${hasMobile ? "移动端首屏加载 < 3s，" : ""}生成结果展示时间 < 2s（P90）`,
+            "✓ 导出功能：复制和 Markdown 导出在 Chrome/Safari/移动端三个主要环境均可用"
+          ]
+        },
+        {
+          title: "11. 待澄清问题（评审前必须确认）",
+          list: questions.length ? questions : [
+            "当前需求信息较完整，建议在进入评审前确认：① 北极星指标计算口径；② MVP 的技术可行性评估；③ 灰度用户规模和时间节点。"
+          ]
+        }
+      ];
+    }
+
+    function toMarkdown(title, sections) {
+      return [`# PRD：${title}`, "", ...sections.flatMap(section => {
+        if (section.list) {
+          return [`## ${section.title}`, "", ...section.list.map(item => `- ${item}`), ""];
+        }
+        return [`## ${section.title}`, "", section.body, ""];
+      })].join("\n");
+    }
+
+    function renderPrd(feature, sections) {
+      latestPrdMarkdown = toMarkdown(feature, sections);
+      $("prdResult").innerHTML = sections.map(section => `
+        <section class="prd-section">
+          <h3>${escapeHtml(section.title)}</h3>
+          ${section.list
+            ? `<ul>${section.list.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+            : `<p>${escapeHtml(section.body)}</p>`}
+        </section>
+      `).join("");
+      $("prdPanel").classList.remove("pulse");
+      void $("prdPanel").offsetWidth;
+      $("prdPanel").classList.add("pulse");
+    }
+
+    function showThinkingState() {
+      $("clarifyStatus").textContent = "分析中";
+      $("clarifyResult").innerHTML = `
+        <div class="loading">
+          <div>
+            <div class="spinner" aria-hidden="true"></div>
+            <strong>正在澄清需求</strong>
+            <span>系统正在识别目标用户、问题、指标、风险和待追问信息...</span>
+          </div>
+        </div>
+      `;
+      $("prdResult").innerHTML = `
+        <div class="loading">
+          <div>
+            <div class="spinner" aria-hidden="true"></div>
+            <strong>正在生成 PRD 草稿</strong>
+            <span>正在整理背景、用户场景、功能范围、指标体系和验收标准...</span>
+          </div>
+        </div>
+      `;
+    }
+
+    let pendingBuild = null;
+
+    function build() {
+      const rawNeed = $("rawNeed").value.trim();
+      const knownInfo = $("knownInfo").value.trim();
+      const domain = $("domain").value;
+      const stage = $("stage").value;
+      const preset = domainPresets[domain] || domainPresets["其他"];
+
+      if (!rawNeed) {
+        $("clarifyStatus").textContent = "等待输入";
+        $("clarifyResult").innerHTML = `<div class="empty">请先输入一句模糊需求。比如：我想做一个 AI 选题推荐功能，帮助创作者更快找到选题。</div>`;
+        $("prdResult").innerHTML = `<div class="empty">输入需求后，PRD 会在这里生成。</div>`;
+        latestPrdMarkdown = "";
+        return;
+      }
+
+      if (pendingBuild) {
+        window.clearTimeout(pendingBuild);
+      }
+
+      latestPrdMarkdown = "";
+      $("analyzeBtn").disabled = true;
+      $("analyzeBtn").textContent = "分析中...";
+      showThinkingState();
+
+      pendingBuild = window.setTimeout(() => {
+        const text = `${rawNeed}\n${knownInfo}\n${domain}\n${stage}`;
+        const completeness = analyzeCompleteness(text);
+        const feature = extractFeature(rawNeed, domain);
+        const card = buildRequirementCard(feature, preset, rawNeed, knownInfo, completeness);
+        const questions = buildQuestions(completeness.missing, preset, feature, rawNeed, knownInfo);
+        const sections = prdSections(feature, domain, stage, preset, card, questions, rawNeed, knownInfo);
+        renderClarify(completeness, questions, card);
+        renderPrd(feature, sections);
+        $("analyzeBtn").disabled = false;
+        $("analyzeBtn").textContent = "重新生成澄清与 PRD";
+      }, 1500);
+    }
+
+    async function copyPrd() {
+      if (!latestPrdMarkdown) return;
+      const fallback = $("copyFallback");
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = latestPrdMarkdown;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+        $("copyPrdBtn").textContent = "已复制";
+        setTimeout(() => $("copyPrdBtn").textContent = "复制 PRD", 1200);
+      } catch (error) {
+        fallback.value = latestPrdMarkdown;
+        fallback.classList.add("active");
+        fallback.focus();
+        fallback.select();
+      }
+    }
+
+    function downloadMarkdown() {
+      if (!latestPrdMarkdown) return;
+      const blob = new Blob([latestPrdMarkdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "prd-copilot-output.md";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    $("analyzeBtn").addEventListener("click", build);
+    $("sampleBtn").addEventListener("click", () => loadCase(caseIndex + 1));
+    $("copyPrdBtn").addEventListener("click", copyPrd);
+    $("downloadBtn").addEventListener("click", downloadMarkdown);
+
+    document.getElementById("changelogToggle").addEventListener("click", () => {
+      const cl = document.getElementById("changelog");
+      const open = cl.classList.toggle("open");
+      document.getElementById("changelogToggle").setAttribute("aria-expanded", open);
+    });
+  
+
+  ;(() => {
+    const feedbackRoot = document.getElementById("toolFeedback");
+    if (!feedbackRoot) return;
+    const storageKey = "tool_feedback_prd_v1";
+    const reasons = { up: ["结构清楚","可直接评审","指标完整","风险有帮助"], down: ["结构不完整","内容太泛","指标不清楚","风险不足"] };
+    const $f = (id) => document.getElementById(id);
+    const escapeFeedback = (value) => String(value || "").replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
+    const readFeedback = () => { try { return JSON.parse(localStorage.getItem(storageKey)) || null; } catch { return null; } };
+    const writeFeedback = (payload) => localStorage.setItem(storageKey, JSON.stringify(payload));
+    const notifyFeedback = (message) => {
+      if (typeof showToast === "function") { showToast(message); return; }
+      const existing = document.getElementById("toolFeedbackToast");
+      const toast = existing || document.createElement("div");
+      toast.id = "toolFeedbackToast";
+      toast.textContent = message;
+      toast.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:80;max-width:340px;padding:12px 14px;border:1px solid rgba(15,159,179,.3);border-radius:8px;background:rgba(255,255,255,.97);box-shadow:0 16px 40px rgba(31,45,39,.14);font-size:13px;color:#15211f";
+      if (!existing) document.body.appendChild(toast);
+      clearTimeout(notifyFeedback.timer);
+      notifyFeedback.timer = setTimeout(() => toast.remove(), 2200);
+    };
+    const renderFeedback = (value, reason = "") => {
+      const saved = readFeedback();
+      feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.toolFeedback === value));
+      feedbackRoot.classList.toggle("show-detail", Boolean(value));
+      $f("toolFeedbackQuestion").textContent = value === "up" ? "你最认可哪一点？" : "哪里不够好？";
+      $f("toolFeedbackReasons").innerHTML = (reasons[value] || reasons.down).map((label) => '<button class="tool-feedback-reason' + (label === reason ? ' active' : '') + '" type="button" data-reason="' + escapeFeedback(label) + '">' + escapeFeedback(label) + '</button>').join("");
+      $f("toolFeedbackText").value = saved?.text || "";
+      $f("toolFeedbackNote").textContent = value ? (reason ? "已记录：" + reason : "已记录反馈，可以继续选择原因或写补充说明。") : "";
+    };
+    const saved = readFeedback();
+    if (saved?.value) renderFeedback(saved.value, saved.reason || "");
+    feedbackRoot.querySelectorAll(".tool-feedback-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const payload = { value: btn.dataset.toolFeedback, reason: "", text: readFeedback()?.text || "", updatedAt: new Date().toISOString() };
+        writeFeedback(payload);
+        renderFeedback(payload.value, payload.reason);
+        notifyFeedback(payload.value === "up" ? "已记录：这个结果有帮助" : "已记录：这个结果没帮助");
+      });
+    });
+    $f("toolFeedbackReasons").addEventListener("click", (event) => {
+      const btn = event.target.closest(".tool-feedback-reason");
+      if (!btn) return;
+      const current = readFeedback() || { value: "down", text: "" };
+      const payload = { ...current, reason: btn.dataset.reason, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason);
+      notifyFeedback("已记录反馈原因：" + payload.reason);
+    });
+    $f("toolFeedbackSaveBtn").addEventListener("click", () => {
+      const current = readFeedback() || { value: "down", reason: "", text: "" };
+      const text = $f("toolFeedbackText").value.trim();
+      const hadText = Boolean((current.text || "").trim());
+      const payload = { ...current, text, updatedAt: new Date().toISOString() };
+      writeFeedback(payload);
+      renderFeedback(payload.value, payload.reason || "");
+      const message = text ? "已保存补充说明" : hadText ? "已清空补充说明" : "补充说明为空，未保存新内容";
+      $f("toolFeedbackNote").textContent = message;
+      notifyFeedback(message);
+    });
+  })();
+
+</script>
+</body>
+</html>

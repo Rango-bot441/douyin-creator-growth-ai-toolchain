@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>用户反馈汇总 · AI 工具合集</title>
+  <style>
+    :root {
+      --bg: #07071a;
+      --line: rgba(255,255,255,.1);
+      --text: #e6edf3;
+      --muted: rgba(255,255,255,.52);
+      --accent: #e8450a;
+      --green: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 8%, rgba(232,69,10,.13), transparent 28rem),
+        radial-gradient(circle at 85% 0%, rgba(59,130,246,.1), transparent 24rem),
+        #07071a;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 36px 0 72px; }
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    h1 { margin: 0 0 10px; font-size: clamp(32px, 4vw, 56px); line-height: 1.05; letter-spacing: -.03em; }
+    .lead { margin: 0; max-width: 760px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+    .back {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: rgba(255,255,255,.75);
+      background: rgba(255,255,255,.045);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 850;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(0,0,0,.18);
+    }
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .panel-head h2 { margin: 0 0 6px; font-size: 22px; }
+    .panel-head p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    button {
+      min-height: 34px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px;
+      padding: 0 12px;
+      color: rgba(255,255,255,.75);
+      background: rgba(255,255,255,.045);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+    button:hover { color: #fff; border-color: rgba(232,69,10,.35); background: rgba(232,69,10,.08); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .stat { padding: 16px 18px; border-right: 1px solid rgba(255,255,255,.08); }
+    .stat:last-child { border-right: 0; }
+    .stat b { display: block; margin-bottom: 6px; color: #fff; font-size: 28px; line-height: 1; }
+    .stat span { color: rgba(255,255,255,.45); font-size: 12px; font-weight: 850; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 12px; }
+    th {
+      padding: 11px 14px;
+      text-align: left;
+      color: rgba(255,255,255,.42);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    td {
+      padding: 12px 14px;
+      color: rgba(255,255,255,.68);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .tool { color: #fff; font-weight: 900; }
+    .empty { color: rgba(255,255,255,.3); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      white-space: nowrap;
+      font-weight: 900;
+    }
+    .pill.up { color: var(--green); background: rgba(74,222,128,.08); border-color: rgba(74,222,128,.24); }
+    .pill.down { color: #ff9a6c; background: rgba(232,69,10,.08); border-color: rgba(232,69,10,.24); }
+    .note { max-width: 380px; color: rgba(255,255,255,.68); white-space: pre-wrap; }
+    .summary {
+      padding: 12px 18px;
+      color: rgba(255,255,255,.48);
+      font-size: 12px;
+      line-height: 1.7;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    @media (max-width: 780px) {
+      .topbar, .panel-head { display: grid; }
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>用户反馈汇总</h1>
+        <p class="lead">这里汇总当前浏览器本地保存的 6 个 demo 反馈。当前版本适合单机验证；如果要跨用户汇总，需要后续接数据库、飞书表格或后端接口。</p>
+      </div>
+      <a class="back" href="launcher.html">返回合集</a>
+    </header>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>反馈明细</h2>
+          <p>包含点赞/点踩、原因标签、补充说明和更新时间。</p>
+        </div>
+        <div class="actions">
+          <button id="refreshFeedbackBtn" type="button">刷新数据</button>
+          <button id="exportFeedbackJsonBtn" type="button">导出 JSON</button>
+          <button id="exportFeedbackCsvBtn" type="button">导出 CSV</button>
+        </div>
+      </div>
+      <div class="stats" id="feedbackStats"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>工具</th>
+              <th>反馈</th>
+              <th>原因</th>
+              <th>补充说明</th>
+              <th>更新时间</th>
+            </tr>
+          </thead>
+          <tbody id="feedbackTableBody"></tbody>
+        </table>
+      </div>
+      <div class="summary" id="feedbackSummary"></div>
+    </section>
+  </main>
+
+  <script>
+    const feedbackTools = [
+      { name: "创作者灵感加油站", key: "cs_inspiration_feedback_v1" },
+      { name: "内容安全审核助手", key: "tool_feedback_content_safety_v1" },
+      { name: "AI 复盘诊断台", key: "tool_feedback_postmortem_v1" },
+      { name: "创作者复盘成长助手", key: "tool_feedback_creatorinsight_v1" },
+      { name: "A/B 实验设计助手", key: "tool_feedback_ab_test_v1" },
+      { name: "PRD Copilot", key: "tool_feedback_prd_v1" },
+    ];
+    const feedbackLabel = { up: "👍 有帮助", down: "👎 没帮助" };
+
+    function readFeedbackRows() {
+      return feedbackTools.map(tool => {
+        let data = null;
+        try { data = JSON.parse(localStorage.getItem(tool.key) || "null"); }
+        catch { data = null; }
+        return {
+          tool: tool.name,
+          key: tool.key,
+          value: data?.value || "",
+          reason: data?.reason || "",
+          text: data?.text || "",
+          updatedAt: data?.updatedAt || "",
+        };
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      }[c]));
+    }
+
+    function formatFeedbackTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function renderFeedbackDashboard() {
+      const rows = readFeedbackRows();
+      const submitted = rows.filter(row => row.value);
+      const upCount = submitted.filter(row => row.value === "up").length;
+      const downCount = submitted.filter(row => row.value === "down").length;
+      const textCount = submitted.filter(row => row.text.trim()).length;
+
+      document.getElementById("feedbackStats").innerHTML = [
+        ["已反馈工具", `${submitted.length}/6`],
+        ["有帮助", upCount],
+        ["没帮助", downCount],
+        ["有补充说明", textCount],
+      ].map(([label, value]) => `<div class="stat"><b>${value}</b><span>${label}</span></div>`).join("");
+
+      document.getElementById("feedbackTableBody").innerHTML = rows.map(row => {
+        const hasFeedback = Boolean(row.value);
+        const pillClass = row.value === "up" ? "up" : "down";
+        return `
+          <tr>
+            <td><span class="tool">${escapeHtml(row.tool)}</span></td>
+            <td>${hasFeedback ? `<span class="pill ${pillClass}">${feedbackLabel[row.value]}</span>` : `<span class="empty">暂无反馈</span>`}</td>
+            <td>${row.reason ? escapeHtml(row.reason) : `<span class="empty">-</span>`}</td>
+            <td><div class="note">${row.text ? escapeHtml(row.text) : `<span class="empty">-</span>`}</div></td>
+            <td>${row.updatedAt ? escapeHtml(formatFeedbackTime(row.updatedAt)) : `<span class="empty">-</span>`}</td>
+          </tr>
+        `;
+      }).join("");
+
+      document.getElementById("feedbackSummary").textContent = submitted.length
+        ? `当前浏览器共收集 ${submitted.length} 条工具反馈，其中 ${upCount} 条有帮助、${downCount} 条没帮助。`
+        : "当前浏览器还没有收集到反馈。请先进入任意 demo 点击点赞/点踩后再刷新。";
+    }
+
+    function downloadFeedback(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function csvEscape(value) {
+      return `"${String(value || "").replace(/"/g, '""')}"`;
+    }
+
+    document.getElementById("refreshFeedbackBtn").addEventListener("click", renderFeedbackDashboard);
+    document.getElementById("exportFeedbackJsonBtn").addEventListener("click", () => {
+      downloadFeedback("ai-tools-feedback.json", JSON.stringify(readFeedbackRows(), null, 2), "application/json;charset=utf-8");
+    });
+    document.getElementById("exportFeedbackCsvBtn").addEventListener("click", () => {
+      const rows = readFeedbackRows();
+      const header = ["tool", "feedback", "reason", "text", "updatedAt"];
+      const csv = [
+        header.join(","),
+        ...rows.map(row => [row.tool, feedbackLabel[row.value] || "", row.reason, row.text, row.updatedAt].map(csvEscape).join(",")),
+      ].join("\n");
+      downloadFeedback("ai-tools-feedback.csv", csv, "text/csv;charset=utf-8");
+    });
+    renderFeedbackDashboard();
+  </script>
+</body>
+</html>

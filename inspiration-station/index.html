@@ -1,0 +1,1575 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>创作者灵感加油站 v2</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f9fb3'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='34'%3E💡%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f6;
+      --paper: #f6f4ee;
+      --panel: rgba(255,255,255,.92);
+      --panel-2: rgba(255,253,247,.98);
+      --line: rgba(15,159,179,.24);
+      --line-soft: #d6e0de;
+      --text: #15211f;
+      --muted: #65736f;
+      --cyan: #0f9fb3;
+      --lime: #167a5a;
+      --pink: #d86b2f;
+      --red: #c5443d;
+      --amber: #b86d16;
+      --green: #167a5a;
+      --shadow: 0 24px 70px rgba(31,45,39,.12);
+      --radius: 8px;
+    }
+    *{box-sizing:border-box}
+    html{min-height:100%;background:var(--bg)}
+    body{
+      min-height:100%;margin:0;color:var(--text);
+      font-family:"Inter","PingFang SC","Microsoft YaHei",sans-serif;
+      background:
+        linear-gradient(90deg,rgba(21,33,31,.04) 1px,transparent 1px),
+        linear-gradient(rgba(15,159,179,.045) 1px,transparent 1px),
+        radial-gradient(circle at 8% 0%,rgba(15,159,179,.16),transparent 28rem),
+        radial-gradient(circle at 90% 6%,rgba(216,107,47,.13),transparent 26rem),
+        radial-gradient(circle at 50% 100%,rgba(22,122,90,.08),transparent 24rem),
+        var(--paper);
+      background-size:34px 34px,34px 34px,auto,auto,auto,auto;
+      -webkit-font-smoothing:antialiased;
+    }
+    body::before{
+      position:fixed;inset:0;z-index:0;pointer-events:none;content:"";
+      background:repeating-linear-gradient(to bottom,rgba(21,33,31,.025),rgba(21,33,31,.025) 1px,transparent 1px,transparent 9px);
+      opacity:.35;
+    }
+    button,input,textarea,select{font:inherit}
+    button{cursor:pointer}
+    h1,h2,h3,h4,p{margin-top:0}
+    a{color:inherit;text-decoration:none}
+
+    .shell{position:relative;z-index:1;width:min(1440px,calc(100% - 32px));margin:0 auto;padding:20px 0 40px}
+
+    /* pipeline nav */
+    .pipeline-nav{margin-bottom:12px;border:1px solid var(--line-soft);border-radius:8px;background:rgba(255,255,255,.78);overflow:hidden;box-shadow:0 10px 26px rgba(31,45,39,.06)}
+    .pipeline-inner{display:flex;align-items:center;gap:14px;padding:9px 16px;flex-wrap:wrap}
+    .pipeline-label{font-size:11px;font-weight:900;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+    .pipeline-steps{display:flex;align-items:center;gap:5px;flex:1}
+    .pipeline-step{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800;color:var(--muted);border:1px solid transparent;text-decoration:none;transition:all .16s;white-space:nowrap}
+    a.pipeline-step:hover{border-color:rgba(15,159,179,.32);color:var(--text);background:rgba(15,159,179,.07)}
+    .pipeline-step.ps-current{background:var(--cyan);color:#fff;border-color:var(--cyan)}
+    .ps-num{opacity:.7;font-size:11px}
+    .ps-arrow{color:var(--muted);font-size:11px;opacity:.4}
+    .pipeline-insight{font-size:11px;font-weight:700;color:var(--cyan);white-space:nowrap;margin-left:auto}
+    @media(max-width:720px){.pipeline-insight{display:none}.pipeline-inner{gap:8px}.pipeline-steps{min-width:0;overflow-x:auto;padding-bottom:2px}.pipeline-step{flex:0 0 auto}}
+
+    /* changelog */
+    .changelog{border:1px solid var(--line-soft);border-radius:8px;background:rgba(255,255,255,.86);margin-bottom:14px;overflow:hidden;box-shadow:0 12px 30px rgba(31,45,39,.06)}
+    .changelog-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border:none;background:rgba(15,159,179,.05);cursor:pointer;text-align:left;font:inherit;color:var(--text);transition:background .16s}
+    .changelog-toggle:hover{background:rgba(15,159,179,.09)}
+    .changelog-toggle-left{display:flex;align-items:center;gap:10px}
+    .changelog-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:var(--cyan);color:#fff;font-size:12px;font-weight:900}
+    .changelog-badge.old{background:rgba(21,33,31,.08);color:var(--muted)}
+    .changelog-title{font-size:13px;font-weight:800;color:var(--text)}
+    .changelog-caret{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+    .changelog.open .changelog-caret{transform:rotate(180deg)}
+    .changelog-body{display:none;padding:0 16px 16px}
+    .changelog.open .changelog-body{display:block}
+    .changelog-versions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .cl-version{border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;background:rgba(255,255,255,.68)}
+    .cl-version.current{border-color:rgba(15,159,179,.32);background:rgba(15,159,179,.05)}
+    .cl-version-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .cl-version-head span{font-size:12px;color:var(--muted)}
+    .cl-list{margin:0;padding:0 0 0 16px;font-size:13px;color:var(--muted);line-height:1.8}
+    .cl-list li.good{color:var(--green)}
+    .cl-list li.bad{text-decoration:line-through;opacity:.55}
+    .cl-reason{margin-top:10px;padding:8px 10px;border-radius:6px;background:rgba(15,159,179,.06);border-left:3px solid var(--cyan);font-size:12px;color:#0c7180;line-height:1.65}
+
+    /* changelog inner sections */
+    .cl-section-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin:16px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+    .cl-section-title:first-child{margin-top:4px}
+    .cl-section-icon{font-size:14px}
+
+    /* rival cards */
+    .cl-rival-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+    @media(max-width:720px){.cl-rival-grid{grid-template-columns:1fr}}
+    .cl-rival-card{border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;background:rgba(255,255,255,.68);transition:border-color .16s}
+    .cl-rival-card:hover{border-color:rgba(15,159,179,.28)}
+    .cl-rival-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .cl-rival-icon{font-size:20px;flex-shrink:0}
+    .cl-rival-name{font-size:13px;font-weight:800;color:var(--text);line-height:1.3}
+    .cl-rival-label{display:inline-block;margin-top:3px;font-size:10px;font-weight:800;color:var(--muted);padding:1px 7px;border-radius:999px;background:rgba(21,33,31,.06)}
+    .cl-rival-list{margin:0;padding:0 0 0 16px;font-size:12px;color:#4a5854;line-height:1.75}
+    .cl-rival-list li{margin-bottom:2px}
+    .cl-rival-list li.cl-rival-weak{color:var(--muted);opacity:.75}
+
+    /* innovation cards */
+    .cl-innovation-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:9px;margin-bottom:12px}
+    .cl-inno-card{border:1px solid rgba(22,122,90,.2);border-radius:8px;padding:12px;background:rgba(22,122,90,.04);transition:transform .14s,box-shadow .14s}
+    .cl-inno-card:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(22,122,90,.1)}
+    .cl-inno-icon{font-size:18px;margin-bottom:6px}
+    .cl-inno-title{font-size:12px;font-weight:900;color:var(--text);margin-bottom:4px}
+    .cl-inno-desc{font-size:11px;color:var(--muted);line-height:1.6}
+
+    /* core insight */
+    .cl-core-insight{padding:12px 14px;border-radius:8px;background:rgba(15,159,179,.06);border-left:3px solid var(--cyan);font-size:12px;color:#0c7180;line-height:1.7;margin-bottom:8px}
+    .cl-core-label{font-size:11px;font-weight:900;color:var(--cyan);letter-spacing:.04em;margin-bottom:5px}
+
+    /* roadmap timeline */
+    .cl-roadmap{position:relative;padding-left:20px;margin-bottom:12px}
+    .cl-roadmap::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:linear-gradient(to bottom,var(--cyan),var(--green));border-radius:999px;opacity:.4}
+    .cl-roadmap-item{position:relative;padding:8px 0 8px 14px}
+    .cl-roadmap-dot{position:absolute;left:-17px;top:12px;width:8px;height:8px;border-radius:50%;background:var(--cyan);border:2px solid rgba(255,255,255,.9);box-shadow:0 0 0 2px rgba(15,159,179,.25)}
+    .cl-roadmap-title{font-size:12px;font-weight:800;color:var(--text);margin-bottom:2px}
+    .cl-roadmap-desc{font-size:11px;color:var(--muted);line-height:1.55}
+
+    /* metric bar */
+    .cl-metric-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border-radius:8px;background:rgba(22,122,90,.05);border:1px solid rgba(22,122,90,.18)}
+    .cl-metric-label{font-size:11px;font-weight:900;color:var(--green);flex-shrink:0}
+    .cl-metric-tag{display:inline-flex;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.7);border:1px solid var(--line-soft)}
+
+    /* header */
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:22px;margin-bottom:22px;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:16px;min-width:min(100%,720px);flex:1 1 720px}
+    .brand-mark{width:48px;height:48px;border:2px solid var(--text);border-radius:8px;display:grid;place-items:center;background:#fffef9;box-shadow:6px 6px 0 rgba(15,159,179,.2);font-size:24px;flex:0 0 auto}
+    .brand-title{font-size:clamp(40px,3.2vw,48px);font-weight:950;letter-spacing:0;line-height:1.02}
+    .brand-sub{margin:7px 0 0;color:var(--muted);font-size:clamp(14px,1.05vw,16px);font-weight:800;line-height:1.45}
+    .top-pills{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--line-soft);border-radius:999px;font-size:11px;font-weight:800;color:var(--muted)}
+    .pill.active{border-color:rgba(15,159,179,.4);color:var(--cyan);background:rgba(15,159,179,.07)}
+
+    /* layout */
+    .workspace{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;gap:14px;align-items:start}
+
+    /* panels */
+    .panel{border:1px solid var(--line-soft);border-radius:10px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}
+    .panel-head{padding:14px 16px 12px;border-bottom:1px solid var(--line-soft);background:linear-gradient(90deg,#eef8f7,#fffdf7)}
+    .panel-head h2{margin:0 0 3px;font-size:16px;font-weight:800}
+    .panel-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+    .panel-body{padding:16px}
+
+    /* form elements */
+    label{display:grid;gap:5px;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:11px}
+    label:last-of-type{margin-bottom:0}
+    input,textarea,select{
+      width:100%;border:1px solid #cfd8d6;border-radius:7px;
+      color:var(--text);background:#fffef9;outline:none;
+      padding:9px 11px;font-size:13px;
+      transition:border-color .16s,box-shadow .16s;
+    }
+    input:focus,textarea:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(15,159,179,.12);background:#fff}
+    textarea{resize:vertical;line-height:1.6}
+    select option{background:#fffef9;color:var(--text)}
+
+    /* stage selector */
+    .stage-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:11px}
+    .stage-btn{
+      padding:8px 6px;border:1px solid var(--line-soft);border-radius:7px;
+      background:rgba(255,255,255,.72);color:var(--muted);font-size:11px;font-weight:800;
+      cursor:pointer;transition:all .16s;text-align:center;line-height:1.4;
+    }
+    .stage-btn:hover{border-color:rgba(15,159,179,.32);color:var(--text)}
+    .stage-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(15,159,179,.08)}
+
+    /* action buttons */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:7px;
+      min-height:38px;padding:0 14px;border:1px solid var(--line-soft);
+      border-radius:var(--radius);color:var(--text);background:rgba(255,255,255,.72);
+      font-size:13px;font-weight:700;
+      transition:transform .16s,border-color .16s,box-shadow .16s,background .16s;
+    }
+    .btn:hover{transform:translateY(-1px);border-color:rgba(15,159,179,.45);box-shadow:0 10px 24px rgba(15,159,179,.10)}
+    .btn:disabled{cursor:not-allowed;opacity:.5;transform:none;box-shadow:none}
+    .btn.primary{border-color:var(--cyan);color:#fff;background:linear-gradient(135deg,#0f9fb3,#167a5a);font-weight:900}
+    .btn.ghost{min-height:30px;padding:0 10px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.62)}
+    .btn-row{display:flex;gap:8px;margin-top:14px}
+
+    /* topic output */
+    .topic-groups{display:grid;gap:16px}
+    .group-header{
+      display:flex;align-items:center;gap:8px;margin-bottom:10px;
+      padding:8px 12px;border-radius:7px;background:rgba(255,255,255,.72);border:1px solid var(--line-soft);
+    }
+    .group-icon{font-size:16px}
+    .group-title{font-size:13px;font-weight:900}
+    .group-desc{font-size:11px;color:var(--muted);margin-left:auto}
+    .topic-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+    .topic-card{
+      border:1px solid var(--line-soft);border-radius:8px;padding:12px;
+      background:rgba(255,255,255,.76);cursor:pointer;
+      transition:border-color .16s,background .16s;position:relative;
+    }
+    .topic-card:hover{border-color:rgba(15,159,179,.32);background:rgba(15,159,179,.05)}
+    .topic-card.saved{border-color:rgba(22,122,90,.36);background:rgba(22,122,90,.05)}
+    .topic-card.done{opacity:.5}
+    .topic-title{font-size:14px;font-weight:700;line-height:1.5;margin-bottom:6px;padding-right:70px}
+    .topic-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .topic-tag{
+      display:inline-flex;align-items:center;min-height:20px;padding:0 7px;
+      border-radius:999px;font-size:11px;font-weight:800;
+    }
+    .tag-hook{background:rgba(15,159,179,.1);color:var(--cyan);border:1px solid rgba(15,159,179,.2)}
+    .tag-completion{background:rgba(22,122,90,.08);color:var(--lime);border:1px solid rgba(22,122,90,.2)}
+    .topic-reason{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.55}
+    .topic-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+    .topic-mini{border:1px solid rgba(15,159,179,.14);border-radius:7px;background:rgba(255,255,255,.64);padding:7px 8px;font-size:11px;line-height:1.5;color:#52625e}
+    .topic-mini b{display:block;margin-bottom:2px;color:var(--text);font-size:11px}
+    .topic-brief{margin-top:9px;padding:8px 9px;border-radius:7px;background:rgba(202,255,77,.08);border:1px solid rgba(22,122,90,.16);font-size:12px;line-height:1.6;color:#40504c}
+    .topic-actions{position:absolute;top:10px;right:10px;display:flex;gap:4px}
+    .topic-action{
+      width:26px;height:26px;border-radius:6px;border:1px solid var(--line-soft);
+      background:rgba(255,255,255,.7);color:var(--muted);font-size:13px;
+      display:grid;place-items:center;cursor:pointer;transition:all .14s;
+    }
+    .topic-action:hover{border-color:rgba(15,159,179,.4);color:var(--cyan);background:rgba(15,159,179,.08)}
+    .topic-action.active{border-color:rgba(22,122,90,.4);color:var(--lime);background:rgba(22,122,90,.08)}
+
+    /* result feedback */
+    .feedback-card{
+      margin:0 14px 14px;padding:12px;border:1px solid rgba(15,159,179,.22);
+      border-radius:8px;background:rgba(255,255,255,.72);font-size:12px;color:var(--muted);
+    }
+    .feedback-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .feedback-title{color:var(--text);font-size:13px;font-weight:900}
+    .feedback-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .feedback-btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;
+      padding:0 12px;border:1px solid var(--line-soft);border-radius:999px;background:#fffef9;
+      color:var(--muted);font-size:12px;font-weight:900;transition:all .16s;
+    }
+    .feedback-btn:hover{border-color:rgba(15,159,179,.38);color:var(--cyan);background:rgba(15,159,179,.06)}
+    .feedback-btn.active{border-color:var(--cyan);color:#fff;background:var(--cyan);box-shadow:0 8px 18px rgba(15,159,179,.16)}
+    .feedback-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
+    .feedback-card.show-detail .feedback-detail{display:block}
+    .feedback-question{margin-bottom:8px;color:var(--muted);font-weight:800}
+    .feedback-reasons{display:flex;gap:7px;flex-wrap:wrap}
+    .feedback-reason{
+      display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border:1px solid var(--line-soft);
+      border-radius:999px;background:rgba(255,255,255,.74);color:var(--muted);font-size:11px;font-weight:850;
+    }
+    .feedback-reason:hover{border-color:rgba(15,159,179,.36);color:var(--text)}
+    .feedback-reason.active{border-color:rgba(22,122,90,.45);color:var(--green);background:rgba(22,122,90,.08)}
+    .feedback-input{
+      margin-top:10px;min-height:72px;resize:vertical;background:#fffef9;
+      font-size:12px;line-height:1.55;
+    }
+    .feedback-save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+    .feedback-save{min-height:28px;padding:0 11px;font-size:11px}
+    .feedback-note{margin-top:10px;color:var(--green);font-size:11px;font-weight:850}
+
+    /* empty / loading */
+    .empty{
+      display:grid;min-height:200px;place-items:center;padding:24px;
+      border:1px dashed #c8d4d1;border-radius:8px;
+      color:var(--muted);text-align:center;line-height:1.7;
+      background:rgba(255,255,255,.52);font-size:13px;
+    }
+    .skeleton{position:relative;overflow:hidden;height:76px;border-radius:8px;background:rgba(21,33,31,.06);margin-bottom:8px}
+    .skeleton::after{position:absolute;inset:0;content:"";background:linear-gradient(90deg,transparent,rgba(15,159,179,.16),transparent);transform:translateX(-100%);animation:scan 1.1s infinite}
+    @keyframes scan{to{transform:translateX(100%)}}
+
+    /* deconstructed result */
+    .deconstruct-card{display:grid;gap:10px}
+    .dc-section{padding:12px;border:1px solid var(--line-soft);border-radius:8px;background:rgba(255,255,255,.72)}
+    .dc-section h3{margin:0 0 8px;color:var(--cyan);font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px}
+    .dc-section p,.dc-section pre{margin:0;color:#40504c;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:inherit}
+    .dc-framework{
+      padding:10px 12px;border-radius:6px;background:rgba(22,122,90,.06);
+      border:1px solid rgba(22,122,90,.2);font-size:13px;color:#245047;
+      font-family:"SF Mono","Fira Code",monospace;line-height:1.7;
+    }
+    .variant-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+    .variant-item{padding:8px 10px;border:1px solid var(--line-soft);border-radius:6px;background:rgba(255,255,255,.74);font-size:13px;line-height:1.5}
+    .perf-badges{display:flex;gap:6px;flex-wrap:wrap}
+    .perf-badge{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800}
+    .perf-high{background:rgba(22,122,90,.1);border:1px solid rgba(22,122,90,.25);color:var(--green)}
+    .perf-mid{background:rgba(184,109,22,.1);border:1px solid rgba(184,109,22,.22);color:var(--amber)}
+    .perf-low{background:rgba(197,68,61,.1);border:1px solid rgba(197,68,61,.22);color:var(--red)}
+
+    /* library drawer */
+    .library-drawer{
+      position:fixed;right:0;top:0;bottom:0;width:min(420px,94vw);z-index:50;
+      background:var(--panel-2);border-left:1px solid var(--line-soft);
+      box-shadow:-20px 0 60px rgba(31,45,39,.16);
+      transform:translateX(100%);transition:transform .28s cubic-bezier(.16,1,.3,1);
+      display:flex;flex-direction:column;
+    }
+    .library-drawer.open{transform:translateX(0)}
+    .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line-soft)}
+    .drawer-head h2{margin:0;font-size:16px}
+    .drawer-body{flex:1;overflow-y:auto;padding:16px 20px}
+    .drawer-empty{color:var(--muted);font-size:13px;line-height:1.7;text-align:center;padding:40px 0}
+    .lib-group{margin-bottom:20px}
+    .lib-group-title{font-size:11px;font-weight:900;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+    .lib-item{padding:10px 12px;border:1px solid var(--line-soft);border-radius:7px;margin-bottom:6px;background:rgba(255,255,255,.74);font-size:13px;line-height:1.5}
+    .lib-item span{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+    .feature-summary{
+      padding:12px;border:1px solid rgba(22,122,90,.22);border-radius:8px;
+      background:rgba(22,122,90,.06);font-size:13px;color:#245047;line-height:1.7;
+      margin-bottom:14px;
+    }
+
+    /* overlay */
+    .drawer-overlay{position:fixed;inset:0;z-index:49;background:rgba(21,33,31,.2);backdrop-filter:blur(4px);display:none}
+    .drawer-overlay.open{display:block}
+
+    /* toast */
+    .toast{
+      position:fixed;right:18px;bottom:18px;z-index:60;
+      width:min(340px,calc(100% - 36px));padding:12px 14px;
+      border:1px solid rgba(15,159,179,.3);border-radius:8px;
+      color:var(--text);background:rgba(255,253,247,.97);
+      box-shadow:var(--shadow);transform:translateY(16px);opacity:0;
+      pointer-events:none;transition:opacity .18s,transform .18s;line-height:1.55;font-size:13px;
+    }
+    .toast.show{transform:translateY(0);opacity:1}
+
+    @media(max-width:1100px){.workspace{grid-template-columns:260px minmax(0,1fr);} .workspace > :last-child{display:none}}
+    @media(max-width:720px){.workspace{grid-template-columns:1fr}.changelog-versions{grid-template-columns:1fr}}
+
+    /* 右侧面板 tab */
+    .panel-tabs{display:flex;border-bottom:1px solid var(--line-soft);background:rgba(255,255,255,.64)}
+    .panel-tab{flex:1;padding:9px 6px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:800;cursor:pointer;border-bottom:2px solid transparent;transition:all .16s;font:inherit}
+    .panel-tab:hover{color:var(--text)}
+    .panel-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);background:rgba(15,159,179,.06)}
+    .panel-pane{display:none}.panel-pane.active{display:block}
+
+    /* 效果反馈徽章 */
+    .eff-btn{
+      display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;
+      border:1px solid var(--line-soft);background:rgba(255,255,255,.7);color:var(--muted);cursor:pointer;transition:all .14s;
+    }
+    .eff-btn:hover{opacity:.85}
+    .eff-btn.hit{border-color:rgba(22,122,90,.45);color:var(--green);background:rgba(22,122,90,.08)}
+    .eff-btn.mid{border-color:rgba(184,109,22,.35);color:var(--amber);background:rgba(184,109,22,.08)}
+    .eff-btn.miss{border-color:rgba(197,68,61,.3);color:var(--red);background:rgba(197,68,61,.07)}
+    .eff-btn.active-hit{border-color:var(--green);color:var(--green);background:rgba(22,122,90,.14);box-shadow:0 0 8px rgba(22,122,90,.18)}
+    .eff-btn.active-mid{border-color:var(--amber);color:var(--amber);background:rgba(184,109,22,.14);box-shadow:0 0 8px rgba(184,109,22,.16)}
+    .eff-btn.active-miss{border-color:var(--red);color:var(--red);background:rgba(197,68,61,.12);box-shadow:0 0 8px rgba(197,68,61,.14)}
+
+    /* 偏好洞察报告 */
+    .insight-report{padding:12px 14px;border:1px solid rgba(34,244,255,.2);border-radius:8px;background:rgba(34,244,255,.04);margin-bottom:14px}
+    .insight-report-title{font-size:11px;font-weight:900;color:var(--cyan);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+    .insight-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px}
+    .insight-label{color:var(--muted);min-width:72px;flex-shrink:0}
+    .insight-bar-wrap{flex:1;height:6px;background:rgba(21,33,31,.08);border-radius:999px;overflow:hidden}
+    .insight-bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#0f9fb3,#167a5a)}
+    .insight-val{color:var(--text);font-weight:800;min-width:28px;text-align:right}
+
+    /* 竞品分析面板 */
+    .rival-input{width:100%;min-height:120px;resize:vertical}
+    .rival-tip{font-size:12px;color:var(--muted);line-height:1.65;margin-bottom:10px}
+    .rival-section{padding:12px;border:1px solid var(--line-soft);border-radius:8px;background:rgba(255,255,255,.72);margin-bottom:10px}
+    .rival-section h4{margin:0 0 8px;font-size:12px;font-weight:900;color:var(--cyan);display:flex;align-items:center;gap:6px}
+    .rival-tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+    .rival-tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(15,159,179,.25);color:var(--cyan);background:rgba(15,159,179,.07)}
+    .rival-tag.gap{border-color:rgba(202,255,77,.3);color:var(--lime);background:rgba(202,255,77,.07)}
+    .rival-suggest-list{margin:0;padding:0 0 0 14px;font-size:12px;color:#40504c;line-height:1.8}
+    .rival-suggest-list li{margin-bottom:4px}
+
+    /* 竞品对比卡片 */
+    .comp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    @media(max-width:900px){.comp-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:600px){.comp-grid{grid-template-columns:1fr}}
+    .comp-card{border:1px solid var(--line-soft);border-radius:8px;padding:12px;background:rgba(255,255,255,.74)}
+    .comp-card-us{border-color:rgba(202,255,77,.35);background:rgba(202,255,77,.04)}
+    .comp-head{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
+    .comp-name{font-size:13px;font-weight:900;color:var(--text)}
+    .comp-type{font-size:11px;color:var(--muted)}
+    .comp-core{font-size:12px;color:#40504c;line-height:1.6;margin-bottom:7px}
+    .comp-gap{font-size:12px;color:var(--muted);line-height:1.7}
+
+    /* 竞品对比表格 */
+    .comp-table{width:100%;border-collapse:collapse;font-size:12px;min-width:640px}
+    .comp-table th{padding:7px 10px;text-align:left;background:rgba(21,33,31,.04);color:var(--muted);font-weight:800;font-size:11px;border-bottom:1px solid var(--line-soft)}
+    .comp-table td{padding:7px 10px;border-bottom:1px solid rgba(21,33,31,.05);color:#4a5854;vertical-align:middle}
+    .comp-table td.yes{color:#4ade80}
+    .comp-table td.no{color:rgba(255,102,120,.7)}
+    .comp-table td.ok{color:var(--cyan)}
+    .comp-table td.warn{color:#ffb84d}
+    .comp-table tr.tr-us td{background:rgba(202,255,77,.04);color:#efffd0;border-bottom-color:rgba(202,255,77,.15)}
+    .comp-table tr.tr-us td:first-child{color:var(--lime);font-weight:800}
+  </style>
+</head>
+<body>
+<main class="shell">
+
+  <!-- topbar -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">💡</div>
+      <div>
+        <div class="brand-title">创作者灵感加油站</div>
+        <p class="brand-sub">基于账号画像的个性化选题工作台 · 不是通用模板，是针对你的推荐</p>
+      </div>
+    </div>
+    <div class="top-pills">
+      <span class="pill active">① 选题链路</span>
+      <span class="pill">纯前端</span>
+      <span class="pill">本地存储</span>
+      <button class="btn ghost" id="libraryBtn" type="button">📚 我的选题库</button>
+    </div>
+  </header>
+
+  <!-- 完整链路导航 -->
+  <nav class="pipeline-nav" aria-label="创作者增长闭环">
+    <div class="pipeline-inner">
+      <span class="pipeline-label">创作者增长闭环</span>
+      <div class="pipeline-steps">
+        <span class="pipeline-step ps-current" aria-current="step"><span class="ps-num">①</span><span class="ps-name">选题</span></span>
+        <span class="ps-arrow">→</span>
+        <a class="pipeline-step" href="../content-safety-copilot/index.html"><span class="ps-num">②</span><span class="ps-name">创作合规</span></a>
+        <span class="ps-arrow">→</span>
+        <a class="pipeline-step" href="../creator-postmortem-ai/index.html"><span class="ps-num">③</span><span class="ps-name">复盘诊断</span></a>
+        <span class="ps-arrow">→</span>
+        <a class="pipeline-step" href="../creatorinsight-ai/index.html"><span class="ps-num">④</span><span class="ps-name">增长规划</span></a>
+        <span class="ps-arrow">→</span>
+        <a class="pipeline-step" href="../ab-test-designer/index.html"><span class="ps-num">⑤</span><span class="ps-name">实验验证</span></a>
+        <span class="ps-arrow" style="opacity:.25">·</span>
+        <a class="pipeline-step" href="../prd-copilot/index.html"><span class="ps-num">+</span><span class="ps-name">PRD方案化</span></a>
+        <a class="pipeline-step" href="../launcher.html"><span class="ps-name">返回合集</span></a>
+      </div>
+      <span class="pipeline-insight">💡 本页解决"不知道拍什么"，把账号画像转成可执行选题。</span>
+    </div>
+  </nav>
+
+  <!-- 迭代日志 + 竞品调研 -->
+  <div class="changelog" id="changelog">
+    <button class="changelog-toggle" id="changelogToggle" type="button" aria-expanded="false">
+      <div class="changelog-toggle-left">
+        <span class="changelog-badge">v2.0</span>
+        <span class="changelog-title">竞品对比 · 创新点 · 优化方向</span>
+      </div>
+      <span class="changelog-caret">▼</span>
+    </button>
+    <div class="changelog-body">
+
+      <!-- 一、市面竞品现状 -->
+      <div class="cl-section-title"><span class="cl-section-icon">📊</span>市面竞品现状</div>
+      <div class="cl-rival-grid">
+        <div class="cl-rival-card">
+          <div class="cl-rival-header">
+            <span class="cl-rival-icon">🔥</span>
+            <div>
+              <div class="cl-rival-name">抖音创作者中心「热点宝」</div>
+              <span class="cl-rival-label">平台官方</span>
+            </div>
+          </div>
+          <ul class="cl-rival-list">
+            <li>基于热点榜单推荐话题，强在平台官方数据</li>
+            <li class="cl-rival-weak">更偏数据看板，不直接把"不知道拍什么"转成可执行选题</li>
+            <li class="cl-rival-weak">缺少选题资产管理，看完数据仍需人工整理</li>
+          </ul>
+        </div>
+        <div class="cl-rival-card">
+          <div class="cl-rival-header">
+            <span class="cl-rival-icon">🤖</span>
+            <div>
+              <div class="cl-rival-name">Coze / GPTs 类选题 Bot</div>
+              <span class="cl-rival-label">AI 平台</span>
+            </div>
+          </div>
+          <ul class="cl-rival-list">
+            <li>通用 AI 生成选题，可自定义 Prompt 和工作流</li>
+            <li class="cl-rival-weak">无垂类/阶段区分，千人一面</li>
+            <li class="cl-rival-weak">需要自己搭建，普通创作者无法开箱即用</li>
+          </ul>
+        </div>
+        <div class="cl-rival-card">
+          <div class="cl-rival-header">
+            <span class="cl-rival-icon">🎬</span>
+            <div>
+              <div class="cl-rival-name">剪映「图文/脚本生成」</div>
+              <span class="cl-rival-label">制作工具</span>
+            </div>
+          </div>
+          <ul class="cl-rival-list">
+            <li>强在制作执行（AI 文案、自动剪辑），移动端体验好</li>
+            <li class="cl-rival-weak">不解决"今天该拍什么"的选题决策问题</li>
+            <li class="cl-rival-weak">选题推荐偏单次生成，无选题库沉淀</li>
+          </ul>
+        </div>
+        <div class="cl-rival-card">
+          <div class="cl-rival-header">
+            <span class="cl-rival-icon">📈</span>
+            <div>
+              <div class="cl-rival-name">飞瓜 / 蝉妈妈</div>
+              <span class="cl-rival-label">数据平台</span>
+            </div>
+          </div>
+          <ul class="cl-rival-list">
+            <li>给大盘数据（达人榜、传播指数、竞品涨粉分析）</li>
+            <li class="cl-rival-weak">用户要自己从数据推导"拍什么"，不直接生成选题</li>
+            <li class="cl-rival-weak">价格和学习门槛偏高，个人创作者使用压力大</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 二、我们的创新点 -->
+      <div class="cl-section-title"><span class="cl-section-icon">💡</span>我们的创新点</div>
+      <div class="cl-innovation-grid">
+        <div class="cl-inno-card">
+          <div class="cl-inno-icon">🎯</div>
+          <div class="cl-inno-title">四维个性化输入</div>
+          <div class="cl-inno-desc">垂类 × 账号阶段 × 受众画像 × 卖点，生成的选题是「只属于你」的，而非千人一面</div>
+        </div>
+        <div class="cl-inno-card">
+          <div class="cl-inno-icon">📊</div>
+          <div class="cl-inno-title">输出分层策略</div>
+          <div class="cl-inno-desc">高潜力 / 差异化 / 长尾三类选题，冷启期和成长期的推荐完全不同</div>
+        </div>
+        <div class="cl-inno-card">
+          <div class="cl-inno-icon">🔍</div>
+          <div class="cl-inno-title">爆款解构器</div>
+          <div class="cl-inno-desc">拆解共鸣点 + 可迁移框架 + 同垂类变体，让创作者知道为什么火、怎么学</div>
+        </div>
+        <div class="cl-inno-card">
+          <div class="cl-inno-icon">📚</div>
+          <div class="cl-inno-title">选题库管理</div>
+          <div class="cl-inno-desc">标记已拍/待用/不适合，从「一次性推荐」变成「可复用选题资产」</div>
+        </div>
+        <div class="cl-inno-card">
+          <div class="cl-inno-icon">⚔️</div>
+          <div class="cl-inno-title">内置竞品对比视角</div>
+          <div class="cl-inno-desc">展示对抖音创作者中心、Coze、剪映等的调研能力与差异化定位</div>
+        </div>
+      </div>
+      <div class="cl-core-insight">
+        <div class="cl-core-label">核心判断</div>
+        个人创作者缺的不是「更多选题列表」，而是「基于我这个账号现在的阶段，今天该拍什么」。所以我们不拼数据规模，而是把账号阶段感知 + 选题决策产品化。
+      </div>
+
+      <!-- 三、后续优化方向 -->
+      <div class="cl-section-title"><span class="cl-section-icon">🚀</span>后续优化方向</div>
+      <div class="cl-roadmap">
+        <div class="cl-roadmap-item">
+          <div class="cl-roadmap-dot"></div>
+          <div class="cl-roadmap-content">
+            <div class="cl-roadmap-title">接入实时热点 API</div>
+            <div class="cl-roadmap-desc">选题带实时热度分和上升趋势，从「规则推荐」升级为「数据驱动推荐」</div>
+          </div>
+        </div>
+        <div class="cl-roadmap-item">
+          <div class="cl-roadmap-dot"></div>
+          <div class="cl-roadmap-content">
+            <div class="cl-roadmap-title">同垂类爆款结构参考</div>
+            <div class="cl-roadmap-desc">加入近 7 天同垂类爆款的内容结构拆解，让选题更可执行</div>
+          </div>
+        </div>
+        <div class="cl-roadmap-item">
+          <div class="cl-roadmap-dot"></div>
+          <div class="cl-roadmap-content">
+            <div class="cl-roadmap-title">LLM 多版本选题生成</div>
+            <div class="cl-roadmap-desc">接入大模型生成多角度选题，并解释推荐理由</div>
+          </div>
+        </div>
+        <div class="cl-roadmap-item">
+          <div class="cl-roadmap-dot"></div>
+          <div class="cl-roadmap-content">
+            <div class="cl-roadmap-title">链路数据串联</div>
+            <div class="cl-roadmap-desc">选题可一键流转到合规检查和复盘环节，形成完整闭环</div>
+          </div>
+        </div>
+        <div class="cl-roadmap-item">
+          <div class="cl-roadmap-dot"></div>
+          <div class="cl-roadmap-content">
+            <div class="cl-roadmap-title">选题资产沉淀</div>
+            <div class="cl-roadmap-desc">自动沉淀账号专属选题库，追踪选题采纳率和后续发布表现</div>
+          </div>
+        </div>
+      </div>
+      <div class="cl-metric-bar">
+        <span class="cl-metric-label">🎯 验证指标</span>
+        <span class="cl-metric-tag">选题采纳率</span>
+        <span class="cl-metric-tag">收藏到选题库比例</span>
+        <span class="cl-metric-tag">选题→发布转化率</span>
+        <span class="cl-metric-tag">后续作品完播率改善</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- workspace -->
+  <div class="workspace">
+
+    <!-- 左：账号画像 + 操作 -->
+    <aside class="panel">
+      <div class="panel-head">
+        <h2>账号画像</h2>
+        <p>填写越具体，选题越精准</p>
+      </div>
+      <div class="panel-body">
+
+        <label>内容垂类
+          <select id="vertical">
+            <option value="">请选择垂类</option>
+            <option>职场成长</option>
+            <option>知识教程</option>
+            <option>美妆穿搭</option>
+            <option>家居收纳</option>
+            <option>母婴育儿</option>
+            <option>探店美食</option>
+            <option>科技数码</option>
+            <option>情感生活</option>
+            <option>健康运动</option>
+            <option>财经理财</option>
+            <option>创业商业</option>
+            <option selected>AI工具</option>
+            <option>其他</option>
+          </select>
+        </label>
+
+        <div style="margin-bottom:11px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:7px">账号阶段</div>
+          <div class="stage-grid" id="stageGrid">
+            <button class="stage-btn" type="button" data-stage="cold">冷启动期<br><span style="font-weight:500;opacity:.7">0–1000 粉</span></button>
+            <button class="stage-btn active" type="button" data-stage="growth">成长期<br><span style="font-weight:500;opacity:.7">1000–5万</span></button>
+            <button class="stage-btn" type="button" data-stage="mid">腰部<br><span style="font-weight:500;opacity:.7">5万–50万</span></button>
+            <button class="stage-btn" type="button" data-stage="mature">成熟期<br><span style="font-weight:500;opacity:.7">50万+</span></button>
+          </div>
+        </div>
+
+        <label>目标受众
+          <textarea id="audience" rows="2" placeholder="如：22-28岁应届生和职场新人，关注涨薪、跳槽和职场沟通技巧">想用 AI 提高内容产出效率的个人创作者和职场博主</textarea>
+        </label>
+
+        <label>近期最高播放内容方向
+          <textarea id="topContent" rows="2" placeholder="如：「5个不敢说出口的职场潜规则」播放量50万。没有可以留空">AI 工具测评、自动剪辑流程、低成本内容生产方法</textarea>
+        </label>
+
+        <label>本次选题核心卖点
+          <textarea id="sellingPoint" rows="2" placeholder="如：低预算家居改造，30分钟让出租屋看起来像样板间">AI 自动化剪辑 + 选题复盘，让创作者更快完成从想法到发布</textarea>
+        </label>
+
+        <div class="btn-row">
+          <button class="btn primary" id="generateBtn" type="button" style="flex:1">生成选题方案</button>
+        </div>
+        <div class="btn-row" style="margin-top:6px">
+          <button class="btn ghost" id="sampleBtn" type="button" style="flex:1">换一个样例</button>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- 中：选题结果 -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>选题推荐方案</h2>
+        <p id="topicCountLabel">填写账号画像后生成</p>
+      </div>
+      <div class="panel-body" id="topicOutput">
+        <div class="empty">填写左侧账号画像后点击「生成选题方案」<br>系统会基于你的垂类和账号阶段，推荐三类不同策略的选题</div>
+      </div>
+      <div class="feedback-card" id="topicFeedback">
+        <div class="feedback-head">
+          <div>
+            <div class="feedback-title">这个选题结果对你有帮助吗？</div>
+            <div style="margin-top:3px">用于判断这个工具是否真的解决“今天拍什么”的问题。</div>
+          </div>
+          <div class="feedback-actions" aria-label="选题结果反馈">
+            <button class="feedback-btn" type="button" data-feedback="up">👍 有帮助</button>
+            <button class="feedback-btn" type="button" data-feedback="down">👎 没帮助</button>
+          </div>
+        </div>
+        <div class="feedback-detail">
+          <div class="feedback-question" id="feedbackQuestion">哪里不够好？</div>
+          <div class="feedback-reasons" id="feedbackReasons">
+            <button class="feedback-reason" type="button" data-reason="不够具体">不够具体</button>
+            <button class="feedback-reason" type="button" data-reason="不符合账号">不符合账号</button>
+            <button class="feedback-reason" type="button" data-reason="缺少新意">缺少新意</button>
+            <button class="feedback-reason" type="button" data-reason="不好执行">不好执行</button>
+          </div>
+          <textarea class="feedback-input" id="feedbackText" placeholder="也可以直接写一句具体反馈，例如：选题还可以，但不够贴近我的账号阶段。"></textarea>
+          <div class="feedback-save-row">
+            <div class="feedback-note" id="feedbackNote"></div>
+            <button class="btn ghost feedback-save" id="feedbackSaveBtn" type="button">保存补充说明</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin:12px 14px 14px;padding:12px;border:1px solid rgba(15,159,179,.22);border-radius:8px;background:rgba(15,159,179,.06);font-size:12px;line-height:1.7;color:var(--muted)">
+        <strong style="display:block;color:var(--text);font-size:13px">下一步动作</strong>
+        选中一条准备拍摄的选题后，进入内容安全审核，先检查标题和口播稿是否存在平台风险。
+        <a href="../content-safety-copilot/index.html" style="display:inline-flex;margin-top:8px;color:var(--cyan);font-weight:900;text-decoration:none">去合规检测 →</a>
+      </div>
+      <div style="margin:0 14px 14px;padding:12px;border:1px solid rgba(202,255,77,.22);border-radius:8px;background:rgba(202,255,77,.06);font-size:12px;line-height:1.7;color:var(--muted)">
+        <strong style="display:block;color:var(--text);font-size:13px">核心指标</strong>
+        选题采纳率 · 收藏到选题库比例 · 生成后进入合规检测比例 · 后续发布完播/收藏表现。
+      </div>
+    </section>
+
+    <!-- 右：爆款解构 + 竞品分析（Tab） -->
+    <aside class="panel">
+      <div class="panel-tabs">
+        <button class="panel-tab active" id="tabDecon" type="button">🔍 爆款解构器</button>
+        <button class="panel-tab" id="tabRival" type="button">⚔️ 竞品账号分析</button>
+      </div>
+
+      <!-- 爆款解构面板 -->
+      <div class="panel-pane active" id="paneDecon">
+        <div class="panel-head" style="border-top:none;border-radius:0">
+          <p style="margin:0;color:var(--muted);font-size:12px">输入任意爆款标题或文案，拆出可迁移结构</p>
+        </div>
+        <div class="panel-body">
+          <label>对标爆款标题 / 文案
+            <textarea id="deconInput" rows="5" placeholder="粘贴你想学习的爆款标题或口播稿片段&#10;&#10;例：「普通人做小红书，前7天别急着发内容——你缺的不是方法，是定位」"></textarea>
+          </label>
+          <label style="margin-bottom:8px">所属垂类（选填，提升仿写精准度）
+            <select id="deconVertical">
+              <option value="">与账号画像相同</option>
+              <option>职场成长</option><option>知识教程</option><option>美妆穿搭</option>
+              <option>家居收纳</option><option>母婴育儿</option><option>探店美食</option>
+              <option>科技数码</option><option>情感生活</option><option>健康运动</option>
+              <option>财经理财</option><option>创业商业</option><option>AI工具</option><option>其他</option>
+            </select>
+          </label>
+          <div class="btn-row"><button class="btn primary" id="deconBtn" type="button" style="flex:1">解构分析</button></div>
+          <div id="deconOutput" style="margin-top:14px">
+            <div class="empty" style="min-height:120px">分析结果会按钩子 / 共鸣点 / 结构框架 / 同垂类变体分块展示</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 竞品分析面板 -->
+      <div class="panel-pane" id="paneRival">
+        <div class="panel-head" style="border-top:none;border-radius:0">
+          <p style="margin:0;color:var(--muted);font-size:12px">分析竞品选题规律，找到你的差异化空白</p>
+        </div>
+        <div class="panel-body">
+          <p class="rival-tip">将竞品账号近 10–20 条视频的<strong style="color:var(--text)">标题逐行粘贴</strong>，系统分析其高频钩子、话题偏好，并给出你可以切入的差异化方向。</p>
+          <label>竞品视频标题列表（每行一个）
+            <textarea id="rivalInput" class="rival-input" rows="8" placeholder="例（每行一个标题）：
+普通人如何靠副业月入过万
+我用3个月从0做到10万粉的真实方法
+打工人必看！这5个职场潜规则没人告诉你
+月薪5000如何存到人生第一桶金
+…"></textarea>
+          </label>
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:7px">竞品账号垂类</div>
+            <select id="rivalVertical" style="width:100%;border:1px solid #cfd8d6;border-radius:7px;color:var(--text);background:#fffef9;outline:none;padding:9px 11px;font-size:13px">
+              <option value="">与我的账号相同</option>
+              <option>职场成长</option><option>知识教程</option><option>美妆穿搭</option>
+              <option>家居收纳</option><option>母婴育儿</option><option>探店美食</option>
+              <option>科技数码</option><option>情感生活</option><option>健康运动</option>
+              <option>财经理财</option><option>创业商业</option><option>AI工具</option><option>其他</option>
+            </select>
+          </div>
+          <div class="btn-row"><button class="btn primary" id="rivalBtn" type="button" style="flex:1">分析竞品选题规律</button></div>
+          <div id="rivalOutput" style="margin-top:14px">
+            <div class="empty" style="min-height:120px">分析结果：竞品高频钩子 · 话题偏好 · 你的差异化切入点</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+</main>
+
+<!-- 选题库抽屉 -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="library-drawer" id="libraryDrawer" role="dialog" aria-modal="true" aria-label="我的选题库">
+  <div class="drawer-head">
+    <h2>📚 我的选题库</h2>
+    <button class="btn ghost" id="closeDrawerBtn">关闭</button>
+  </div>
+  <div class="drawer-body" id="libraryBody"></div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  /* ─────────────── 常量与工具 ─────────────── */
+  const STORE_KEY = "cs_inspiration_v2";
+  const FEEDBACK_KEY = "cs_inspiration_feedback_v1";
+  const $ = id => document.getElementById(id);
+  let selectedStage = "growth";
+
+  function showToast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+
+  function escHtml(s) {
+    return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  }
+
+  function loadStore() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || { items: [] }; }
+    catch { return { items: [] }; }
+  }
+
+  function saveStore(data) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+  }
+
+  function loadFeedback() {
+    try { return JSON.parse(localStorage.getItem(FEEDBACK_KEY)) || null; }
+    catch { return null; }
+  }
+
+  function saveFeedback(data) {
+    localStorage.setItem(FEEDBACK_KEY, JSON.stringify(data));
+  }
+
+  function setFeedbackState(value, reason = "") {
+    const card = $("topicFeedback");
+    const note = $("feedbackNote");
+    const question = $("feedbackQuestion");
+    const saved = loadFeedback();
+    card.querySelectorAll(".feedback-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.feedback === value);
+    });
+    card.querySelectorAll(".feedback-reason").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.reason === reason);
+    });
+    card.classList.toggle("show-detail", Boolean(value));
+    question.textContent = value === "up" ? "你最认可哪一点？" : "哪里不够好？";
+    const reasonLabels = value === "up"
+      ? ["节省时间", "给了新思路", "方便执行", "适合继续迭代"]
+      : ["不够具体", "不符合账号", "缺少新意", "不好执行"];
+    $("feedbackReasons").innerHTML = reasonLabels.map(label =>
+      `<button class="feedback-reason${label === reason ? " active" : ""}" type="button" data-reason="${escHtml(label)}">${escHtml(label)}</button>`
+    ).join("");
+    $("feedbackText").value = saved?.text || "";
+    note.textContent = value ? (reason ? `已记录：${reason}` : "已记录反馈，可以继续选择原因或写补充说明。") : "";
+  }
+
+  function initFeedback() {
+    const saved = loadFeedback();
+    if (saved?.value) setFeedbackState(saved.value, saved.reason || "");
+    $("topicFeedback").querySelectorAll(".feedback-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const value = btn.dataset.feedback;
+        const payload = {
+          value,
+          reason: "",
+          vertical: $("vertical")?.value || "",
+          stage: selectedStage,
+          updatedAt: new Date().toISOString(),
+        };
+        saveFeedback(payload);
+        setFeedbackState(value);
+        showToast(value === "up" ? "已记录：这个选题结果有帮助" : "已记录：这个选题结果没帮助");
+      });
+    });
+    $("feedbackReasons").addEventListener("click", e => {
+      const btn = e.target.closest(".feedback-reason");
+      if (!btn) return;
+      const saved = loadFeedback() || { value: "down" };
+      const payload = {
+        ...saved,
+        reason: btn.dataset.reason,
+        vertical: $("vertical")?.value || "",
+        stage: selectedStage,
+        updatedAt: new Date().toISOString(),
+      };
+      saveFeedback(payload);
+      setFeedbackState(payload.value, payload.reason);
+      showToast(`已记录反馈原因：${payload.reason}`);
+    });
+    $("feedbackSaveBtn").addEventListener("click", () => {
+      const saved = loadFeedback() || { value: "down", reason: "" };
+      const text = $("feedbackText").value.trim();
+      const hadText = Boolean((saved.text || "").trim());
+      const payload = {
+        ...saved,
+        text,
+        vertical: $("vertical")?.value || "",
+        stage: selectedStage,
+        updatedAt: new Date().toISOString(),
+      };
+      saveFeedback(payload);
+      setFeedbackState(payload.value, payload.reason || "");
+      const message = text ? "已保存补充说明" : hadText ? "已清空补充说明" : "补充说明为空，未保存新内容";
+      $("feedbackNote").textContent = message;
+      showToast(message);
+    });
+  }
+
+  /* ─────────────── 账号阶段选择 ─────────────── */
+  document.querySelectorAll(".stage-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".stage-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedStage = btn.dataset.stage;
+    });
+  });
+
+  /* ─────────────── 选题生成逻辑 ─────────────── */
+
+  // 钩子类型库
+  const HOOKS = {
+    question:   { label: "悬念提问", predict: "完播率↑↑" },
+    pain:       { label: "痛点共鸣", predict: "评论↑↑" },
+    number:     { label: "数字冲击", predict: "收藏↑↑" },
+    story:      { label: "个人故事", predict: "转粉↑" },
+    contrast:   { label: "反差对比", predict: "分享↑↑" },
+    secret:     { label: "揭秘内幕", predict: "完播率↑" },
+    mistake:    { label: "纠错避坑", predict: "收藏↑↑" },
+    identity:   { label: "人群标签", predict: "精准转粉↑↑" },
+  };
+
+  // 阶段策略配置
+  const STAGE_STRATEGY = {
+    cold: {
+      name: "冷启动期",
+      highDesc: "定位建立型 — 让陌生用户快速知道「你是谁/你服务谁」",
+      diffDesc: "垂类切入型 — 找同垂类内容的空白角度",
+      longDesc: "搜索积累型 — 有搜索需求、能被主动找到的内容",
+      highHooks: ["identity","pain","number"],
+      diffHooks: ["question","secret"],
+      longHooks: ["mistake","number"],
+    },
+    growth: {
+      name: "成长期",
+      highDesc: "痛点深挖型 — 精准打击目标受众的具体高频痛点",
+      diffDesc: "场景细分型 — 从宽泛话题拆出更具体的子场景",
+      longDesc: "经验沉淀型 — 方法论、清单、模板类，适合被反复收藏",
+      highHooks: ["pain","contrast","number"],
+      diffHooks: ["story","question"],
+      longHooks: ["mistake","number"],
+    },
+    mid: {
+      name: "腰部",
+      highDesc: "专业壁垒型 — 只有你能说的深度观点和独家经验",
+      diffDesc: "系列专题型 — 建立系列感，提升账号关注价值",
+      longDesc: "教程工具型 — 步骤清晰、可复用，长期被搜索和收藏",
+      highHooks: ["story","secret","contrast"],
+      diffHooks: ["question","pain"],
+      longHooks: ["number","mistake"],
+    },
+    mature: {
+      name: "成熟期",
+      highDesc: "争议话题型 — 有明确立场、引发讨论、撬动评论区",
+      diffDesc: "现象解读型 — 对热点或社会现象的深度独家观点",
+      longDesc: "方法体系型 — 系统化知识输出，强化专家人设",
+      highHooks: ["contrast","question","secret"],
+      diffHooks: ["story","pain"],
+      longHooks: ["number","mistake"],
+    },
+  };
+
+  // 各垂类高频话题词库
+  const VERTICAL_TOPICS = {
+    "职场成长":   ["职场潜规则","升职加薪","汇报技巧","职场人际","新人避坑","职业规划","被裁之后","跳槽节奏","副业选择","工作效率"],
+    "知识教程":   ["学习方法","记忆技巧","读书笔记","时间管理","专注力","考证备考","英语提升","写作技巧","思维框架","知识变现"],
+    "美妆穿搭":   ["素颜改善","平价替代","显瘦技巧","气质提升","护肤步骤","底妆持久","穿搭公式","配色逻辑","身材遮挡","胶囊衣橱"],
+    "家居收纳":   ["出租屋改造","小户型布局","收纳神器","极简生活","厨房整理","衣橱规划","租房改造","低成本装饰","空间感扩大","断舍离"],
+    "母婴育儿":   ["宝宝睡眠","辅食添加","早教方法","情绪管理","语言发展","亲子阅读","哄睡技巧","宝宝发烧","玩具选择","专注力培养"],
+    "探店美食":   ["隐藏小店","性价比餐厅","本地特色","排队必吃","网红踩雷","宝藏甜品","下班宵夜","约会餐厅","早餐探店","外卖测评"],
+    "科技数码":   ["AI工具推荐","手机技巧","生产力工具","平替选择","数码避坑","效率软件","隐藏功能","新品测评","旧设备利用","智能家居"],
+    "情感生活":   ["恋爱相处","边界感","分手恢复","亲密关系","沟通技巧","自我成长","单身思考","伴侣相处","婚姻现实","独处价值"],
+    "健康运动":   ["无器械训练","居家健身","睡眠质量","饮食习惯","减脂方法","体能提升","运动误区","健身计划","颈肩放松","作息调整"],
+    "财经理财":   ["工资规划","储蓄方法","消费陷阱","理财入门","记账习惯","保险逻辑","基金认知","省钱技巧","财务自由","月光改变"],
+    "创业商业":   ["副业起步","商业模式","定价逻辑","获客渠道","用户留存","品牌建立","创业踩坑","流量思维","竞争分析","产品打磨"],
+    "AI工具":     ["提效工具","Prompt技巧","AI写作","AI图像","自动化流程","工具组合","创作提效","AI替代","真实测评","新手入门"],
+    "其他":       ["真实经历","方法分享","踩坑记录","经验总结","认知转变","行动指南","对比测试","案例拆解","数据揭秘","观念颠覆"],
+  };
+
+  // 钩子句式生成
+  function buildTitle(topic, audience, hookType, stage) {
+    const aud = audience ? audience.split(/[，,、\s]/)[0] || "普通人" : "普通人";
+    const shortAud = aud.length > 8 ? aud.slice(0,8) : aud;
+
+    const templates = {
+      question: [
+        `为什么同样是${shortAud}，有人${topic}越来越好？`,
+        `你真的了解${topic}吗？这${3+Math.floor(Math.random()*3)}个误区可能正在害你`,
+        `做${topic}之前，这件事有没有人告诉过你？`,
+      ],
+      pain: [
+        `${shortAud}最头疼的${topic}问题，这样解决最快`,
+        `${topic}一直没起色？你可能忽略了这个关键点`,
+        `花了${3+Math.floor(Math.random()*9)}个月，才搞明白${topic}的底层逻辑`,
+      ],
+      number: [
+        `${3+Math.floor(Math.random()*5)}个${topic}技巧，${shortAud}必看`,
+        `我花了${1+Math.floor(Math.random()*3)}年，总结出${topic}最有效的${3+Math.floor(Math.random()*4)}步`,
+        `${topic}清单｜这${5+Math.floor(Math.random()*5)}件事早知道早受益`,
+      ],
+      story: [
+        `我是怎么靠${topic}改变现状的？完整经历分享`,
+        `做了${6+Math.floor(Math.random()*18)}个月${topic}，这些是我最真实的感受`,
+        `从完全不懂到${topic}，我踩过的最大坑`,
+      ],
+      contrast: [
+        `同样做${topic}，为什么结果差这么多？`,
+        `${topic}之前 vs 之后，差距真的很大`,
+        `别人的${topic}和你的，到底差在哪里？`,
+      ],
+      secret: [
+        `没人告诉你的${topic}真相`,
+        `${topic}行业内部都知道，但不会公开说的事`,
+        `做了${1+Math.floor(Math.random()*3)}年${topic}，才知道这件事`,
+      ],
+      mistake: [
+        `${topic}最常见的${3+Math.floor(Math.random()*4)}个坑，新手必看`,
+        `我在${topic}上犯过的最贵错误，希望你别重蹈`,
+        `${topic}避坑指南 · ${shortAud}版`,
+      ],
+      identity: [
+        `${shortAud}如何快速做好${topic}？这是我的方法`,
+        `专门给${shortAud}看的${topic}入门指南`,
+        `${shortAud}做${topic}，这${3+Math.floor(Math.random()*3)}点和其他人不一样`,
+      ],
+    };
+
+    const picks = templates[hookType] || templates.number;
+    return picks[Math.floor(Math.random() * picks.length)];
+  }
+
+  function getTopics(vertical) {
+    return VERTICAL_TOPICS[vertical] || VERTICAL_TOPICS["其他"];
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+
+  function generateTopics(vertical, stage, audience, sellingPoint) {
+    const strategy = STAGE_STRATEGY[stage] || STAGE_STRATEGY.growth;
+    const topics = shuffle(getTopics(vertical));
+    const stageLabel = ({ cold: "冷启动期", growth: "成长期", mid: "腰部账号", mature: "成熟期" })[stage] || "成长期";
+    const audienceLabel = audience || "目标受众";
+    const point = sellingPoint || "你的账号差异化经验";
+
+    const buildGroup = (hookTypes, topicSlice, reason) => {
+      return topicSlice.map((topic, i) => {
+        const hookType = hookTypes[i % hookTypes.length];
+        const hook = HOOKS[hookType];
+        const format = hookType === "number" ? "清单/步骤拆解" : hookType === "story" ? "真实经历复盘" : hookType === "contrast" ? "前后对比/案例对照" : hookType === "secret" ? "行业内幕拆解" : hookType === "mistake" ? "避坑清单" : hookType === "question" ? "问题反推答案" : "痛点解决方案";
+        const opening = hookType === "question" ? `先问一句「为什么${audienceLabel}会卡在${topic}？」` : hookType === "contrast" ? `先展示${topic}前后差距，制造反差` : hookType === "story" ? `用一次真实经历切入，降低说教感` : hookType === "mistake" ? `先点出一个高频错误，让用户警觉` : `第一句话直接给出${topic}的结果承诺`;
+        const metric = hookType === "number" || hookType === "mistake" ? "收藏率" : hookType === "story" || hookType === "identity" ? "评论率/转粉率" : hookType === "contrast" ? "转发率" : "完播率";
+        return {
+          title: buildTitle(topic, audience, hookType, stage),
+          topic,
+          hookType: hook.label,
+          predict: hook.predict,
+          reason,
+          format,
+          opening,
+          metric,
+          stageFit: `${stageLabel} · ${stage === "cold" ? "先验证定位" : stage === "growth" ? "测试差异化" : stage === "mid" ? "做系列化" : "沉淀栏目"}`,
+          nextStep: `围绕「${point}」拍 45-75 秒，结尾引导用户留言一个具体问题。`
+        };
+      });
+    };
+
+    return {
+      high: buildGroup(strategy.highHooks, topics.slice(0,4), strategy.highDesc),
+      diff: buildGroup(strategy.diffHooks, topics.slice(4,8), strategy.diffDesc),
+      long: buildGroup(strategy.longHooks, topics.slice(8,12), strategy.longDesc),
+    };
+  }
+
+  /* ─────────────── 渲染选题 ─────────────── */
+  function renderTopics(groups) {
+    const total = groups.high.length + groups.diff.length + groups.long.length;
+    $("topicCountLabel").textContent = `共 ${total} 个选题 · 基于账号阶段分层推荐`;
+
+    const groupDefs = [
+      { key:"high", icon:"🔥", title:"高潜力选题", color:"var(--red)", items: groups.high },
+      { key:"diff", icon:"💡", title:"差异化方向", color:"var(--cyan)", items: groups.diff },
+      { key:"long", icon:"🌱", title:"长尾积累", color:"var(--green)", items: groups.long },
+    ];
+
+    $("topicOutput").innerHTML = groupDefs.map(g => `
+      <div class="topic-group" style="margin-bottom:20px">
+        <div class="group-header">
+          <span class="group-icon">${g.icon}</span>
+          <span class="group-title" style="color:${g.color}">${g.title}</span>
+          <span class="group-desc">${g.items[0]?.reason || ""}</span>
+        </div>
+        <ul class="topic-list">
+          ${g.items.map((item, idx) => `
+            <li class="topic-card" data-title="${escHtml(item.title)}" data-group="${g.key}" data-idx="${idx}">
+              <div class="topic-title">${escHtml(item.title)}</div>
+              <div class="topic-meta">
+                <span class="topic-tag tag-hook">${escHtml(item.hookType)}</span>
+                <span class="topic-tag tag-completion">${escHtml(item.predict)}</span>
+              </div>
+              <div class="topic-reason">${escHtml(item.reason)}</div>
+              <div class="topic-detail-grid">
+                <div class="topic-mini"><b>适合阶段</b>${escHtml(item.stageFit)}</div>
+                <div class="topic-mini"><b>内容形态</b>${escHtml(item.format)}</div>
+                <div class="topic-mini"><b>开头钩子</b>${escHtml(item.opening)}</div>
+                <div class="topic-mini"><b>验证指标</b>重点看 ${escHtml(item.metric)}</div>
+              </div>
+              <div class="topic-brief">${escHtml(item.nextStep)}</div>
+              <div class="topic-actions">
+                <button class="topic-action" data-action="save" title="加入选题库">★</button>
+                <button class="topic-action" data-action="copy" title="复制标题">⎘</button>
+              </div>
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `).join("");
+
+    // 事件绑定
+    $("topicOutput").querySelectorAll(".topic-action").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        const card = btn.closest(".topic-card");
+        const title = card.dataset.title;
+        if (btn.dataset.action === "save") {
+          saveTopicToLibrary(title, btn.closest(".topic-group").querySelector(".group-title").textContent);
+          btn.classList.add("active");
+          card.classList.add("saved");
+          showToast("已加入选题库 ★");
+        } else {
+          navigator.clipboard?.writeText(title).catch(() => {});
+          showToast("标题已复制 · 已传递到合规检查");
+          // 闭环传递：选题 → 合规检查
+          try { localStorage.setItem('cg_pipeline_topic', JSON.stringify({ title, vertical: $('vertical')?.value || '' })); } catch(e) {}
+        }
+      });
+    });
+  }
+
+  /* ─────────────── 爆款解构 ─────────────── */
+  function deconstructContent(text, vertical) {
+    const vt = vertical || $("vertical").value || "其他";
+    const len = text.length;
+
+    // 钩子识别
+    const opener = text.slice(0, 60);
+    let hookLabel = "信息陈述型", hookReason = "开头直接给出信息，属于平铺式叙述。";
+    if (/为什么|凭什么|怎么|如何|真的吗|有没有/.test(opener)) {
+      hookLabel = "悬念提问型"; hookReason = "用疑问句引发好奇，让用户想知道答案，有效提升前3秒留存。";
+    } else if (/千万|警惕|别再|不要|停止|避坑|踩坑/.test(opener)) {
+      hookLabel = "警示规避型"; hookReason = "触发损失厌恶心理，让用户担心错过重要信息，完播率通常较高。";
+    } else if (/我|亲身|真实|经历|故事|那年|那次/.test(opener)) {
+      hookLabel = "个人故事型"; hookReason = "用真实经历建立可信感，目标人群代入感强，转粉率高。";
+    } else if (/\d+|数据|研究|调查/.test(opener)) {
+      hookLabel = "数据冲击型"; hookReason = "用具体数字或研究结论打破常识预期，适合知识类垂类。";
+    } else if (/普通人|你|咱们|同款/.test(opener)) {
+      hookLabel = "人群共鸣型"; hookReason = "直接点名目标人群，让目标用户感觉「说的就是我」，精准吸粉。";
+    }
+
+    // 中间结构
+    let structure = "叙事递进型";
+    if (/第[一二三四五六七八九]|①|②|③|1\.|2\.|3\./.test(text)) structure = "步骤拆解型";
+    else if (/对比|VS|相比|区别|不同/.test(text)) structure = "对比论证型";
+    else if (/因为|所以|导致|原因/.test(text)) structure = "因果推导型";
+    else if (/案例|比如|举例|真实/.test(text)) structure = "案例支撑型";
+
+    // 人群共鸣点
+    let resonance = "通用型内容，未明确针对特定人群。";
+    if (/新手|小白|入门|初学/.test(text)) resonance = "命中「入门恐惧」—— 新手对「能否学会」的不确定，天然高焦虑，建议具体化「第一步怎么做」。";
+    else if (/普通人|打工人|月薪|社畜/.test(text)) resonance = "命中「阶层焦虑」—— 对自身处境不满但又有上升欲望，转发分享动力强。";
+    else if (/时间|效率|浪费|节省/.test(text)) resonance = "命中「效率焦虑」—— 感觉时间不够用，对节省时间的方法高度敏感，收藏率高。";
+    else if (/花钱|省钱|预算|便宜/.test(text)) resonance = "命中「消费理性」—— 希望用更少的钱达到更好的效果，在同类内容中更容易脱颖而出。";
+
+    // 结构框架提取
+    const kw = text.slice(0, 40).replace(/[^一-龥a-zA-Z0-9]/g," ").trim().split(/\s+/).filter(w=>w.length>1)[0] || "核心关键词";
+    let framework = "";
+    if (hookLabel === "悬念提问型") framework = `为什么[目标人群]做[${kw}]，结果总是不同？→ 核心原因 → 你可以这样做`;
+    else if (hookLabel === "警示规避型") framework = `千万不要在[场景]下做[${kw}]，除非你想[负面结果] → 正确做法`;
+    else if (hookLabel === "步骤拆解型") framework = `[数字]步搞定[${kw}]：第一步[行动] → 第二步[行动] → 最后[结果/互动引导]`;
+    else if (hookLabel === "个人故事型") framework = `我[具体经历] → 发现[${kw}]的关键 → 你也可以[复制路径]`;
+    else framework = `[人群标签]如何用[方法]解决[${kw}]问题 → 核心步骤 → 结果证明`;
+
+    // 同垂类变体
+    const vtTopics = shuffle(getTopics(vt)).slice(0,3);
+    const variants = vtTopics.map(t => buildTitle(t, $("audience").value, ["question","pain","number"][Math.floor(Math.random()*3)], selectedStage || "growth"));
+
+    // 表现预估
+    let perfCompletion = "perf-mid", perfEngage = "perf-mid";
+    if (["悬念提问型","警示规避型","人群共鸣型"].includes(hookLabel)) perfCompletion = "perf-high";
+    if (["人群共鸣型","个人故事型"].includes(hookLabel)) perfEngage = "perf-high";
+    if (hookLabel === "信息陈述型") { perfCompletion = "perf-low"; perfEngage = "perf-low"; }
+
+    return { hookLabel, hookReason, structure, resonance, framework, variants, perfCompletion, perfEngage };
+  }
+
+  function renderDeconstruct(result) {
+    $("deconOutput").innerHTML = `<div class="deconstruct-card">
+      <div class="dc-section">
+        <h3>🎣 开头钩子</h3>
+        <p><strong>${escHtml(result.hookLabel)}</strong> — ${escHtml(result.hookReason)}</p>
+        <div style="margin-top:10px;display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)">内容结构：<strong style="color:var(--text)">${escHtml(result.structure)}</strong></div>
+      </div>
+      <div class="dc-section">
+        <h3>❤️ 人群共鸣点</h3>
+        <p>${escHtml(result.resonance)}</p>
+      </div>
+      <div class="dc-section">
+        <h3>📐 可迁移结构框架</h3>
+        <div class="dc-framework">${escHtml(result.framework)}</div>
+        <p style="margin-top:8px;font-size:12px;color:var(--muted)">将 [ ] 内的变量替换为你的垂类场景，即可生成同结构新标题</p>
+      </div>
+      <div class="dc-section">
+        <h3>✏️ 同垂类变体（3个）</h3>
+        <ul class="variant-list">
+          ${result.variants.map(v => `<li class="variant-item">${escHtml(v)}</li>`).join("")}
+        </ul>
+      </div>
+      <div class="dc-section">
+        <h3>📊 表现预估</h3>
+        <div class="perf-badges">
+          <span class="perf-badge ${result.perfCompletion}">完播率 ${result.perfCompletion==="perf-high"?"↑↑ 高潜":result.perfCompletion==="perf-mid"?"→ 中等":"↓ 偏低"}</span>
+          <span class="perf-badge ${result.perfEngage}">互动率 ${result.perfEngage==="perf-high"?"↑↑ 高潜":result.perfEngage==="perf-mid"?"→ 中等":"↓ 偏低"}</span>
+        </div>
+        <p style="margin-top:8px;font-size:12px;color:var(--muted)">基于钩子类型和内容结构的规则判断，仅供参考</p>
+      </div>
+    </div>`;
+  }
+
+  /* ─────────────── 选题库 ─────────────── */
+  function saveTopicToLibrary(title, groupLabel) {
+    const store = loadStore();
+    if (store.items.some(i => i.title === title)) { showToast("已在选题库中"); return; }
+    store.items.unshift({ title, group: groupLabel, savedAt: Date.now(), status: "pending", effect: null });
+    saveStore(store);
+  }
+
+  function renderInsightReport(items) {
+    // 只统计已拍 + 有效果反馈的条目
+    const filmed = items.filter(i => i.status === "done");
+    const withEffect = filmed.filter(i => i.effect);
+    if (filmed.length < 2) return "";
+
+    // 采纳率（已拍/总数）
+    const adoptRate = Math.round(filmed.length / items.length * 100);
+
+    // 效果分布
+    const hitCount  = withEffect.filter(i => i.effect === "hit").length;
+    const midCount  = withEffect.filter(i => i.effect === "mid").length;
+    const missCount = withEffect.filter(i => i.effect === "miss").length;
+    const total = withEffect.length || 1;
+
+    // 分析已拍条目里高频钩子
+    const allFilmedText = filmed.map(i => i.title).join(" ");
+    const hookScores = {};
+    if (/为什么|凭什么|怎么|如何/.test(allFilmedText)) hookScores["悬念提问"] = (hookScores["悬念提问"]||0)+1;
+    if (/千万|警惕|别再|不要|停止|避坑/.test(allFilmedText)) hookScores["警示规避"] = (hookScores["警示规避"]||0)+1;
+    if (/\d+个|[一二三四五六七八九十]+个/.test(allFilmedText)) hookScores["数字冲击"] = (hookScores["数字冲击"]||0)+1;
+    if (/我|亲身|真实|经历|故事/.test(allFilmedText)) hookScores["个人故事"] = (hookScores["个人故事"]||0)+1;
+    if (/普通人|你|新手|小白/.test(allFilmedText)) hookScores["人群共鸣"] = (hookScores["人群共鸣"]||0)+1;
+    const topHook = Object.entries(hookScores).sort((a,b)=>b[1]-a[1])[0]?.[0] || "暂无";
+
+    // 爆款命中率
+    const hitRate = withEffect.length ? Math.round(hitCount / total * 100) : 0;
+
+    return `<div class="insight-report">
+      <div class="insight-report-title">📊 你的选题偏好洞察</div>
+      <div class="insight-row">
+        <span class="insight-label">选题采纳率</span>
+        <div class="insight-bar-wrap"><div class="insight-bar" style="width:${adoptRate}%"></div></div>
+        <span class="insight-val">${adoptRate}%</span>
+      </div>
+      ${withEffect.length ? `<div class="insight-row">
+        <span class="insight-label">爆款命中率</span>
+        <div class="insight-bar-wrap"><div class="insight-bar" style="width:${hitRate}%;background:linear-gradient(90deg,#167a5a,#0f9fb3)"></div></div>
+        <span class="insight-val">${hitRate}%</span>
+      </div>` : ""}
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.65">
+        ${withEffect.length ? `效果分布：<span style="color:var(--green)">爆款 ${hitCount}</span> / <span style="color:var(--amber)">一般 ${midCount}</span> / <span style="color:var(--red)">没起来 ${missCount}</span>` : "标记「已拍」的视频发布后，请回来记录效果，帮助系统学习你的爆款规律。"}
+        ${withEffect.length ? `<br>偏好钩子类型：<strong style="color:var(--cyan)">${topHook}</strong>` : ""}
+      </div>
+    </div>`;
+  }
+
+  function renderLibrary() {
+    const store = loadStore();
+    const body = $("libraryBody");
+    if (!store.items.length) {
+      body.innerHTML = `<div class="drawer-empty">还没有收藏任何选题<br>在生成结果里点击 ★ 加入选题库</div>`;
+      return;
+    }
+
+    const statusColor = { pending:"var(--amber)", done:"var(--green)", skip:"var(--muted)" };
+    const effMap = { hit:"active-hit", mid:"active-mid", miss:"active-miss" };
+
+    body.innerHTML = renderInsightReport(store.items) +
+      store.items.map((item, idx) => `
+        <div class="lib-item" id="lib-item-${idx}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <span style="line-height:1.5">${escHtml(item.title)}</span>
+            <select class="lib-status-select" data-idx="${idx}" style="
+              min-width:80px;max-width:80px;border:1px solid #cfd8d6;
+              border-radius:6px;background:#fffef9;color:${statusColor[item.status||"pending"]};
+              padding:3px 6px;font-size:11px;font-weight:800;flex-shrink:0;
+            ">
+              <option value="pending" ${item.status==="pending"?"selected":""}>待拍</option>
+              <option value="done" ${item.status==="done"?"selected":""}>已拍</option>
+              <option value="skip" ${item.status==="skip"?"selected":""}>不适合</option>
+            </select>
+          </div>
+          <span style="font-size:11px;color:var(--muted)">${item.group || ""} · ${new Date(item.savedAt).toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"})}</span>
+          ${item.status === "done" ? `
+          <div style="margin-top:7px;display:flex;align-items:center;gap:5px">
+            <span style="font-size:11px;color:var(--muted);flex-shrink:0">发布效果：</span>
+            <button class="eff-btn ${item.effect==="hit"?"active-hit":"hit"}" data-eff="hit" data-idx="${idx}">🔥 爆款</button>
+            <button class="eff-btn ${item.effect==="mid"?"active-mid":"mid"}" data-eff="mid" data-idx="${idx}">→ 一般</button>
+            <button class="eff-btn ${item.effect==="miss"?"active-miss":"miss"}" data-eff="miss" data-idx="${idx}">↓ 没起来</button>
+          </div>` : ""}
+        </div>
+      `).join("");
+
+    // 状态变更
+    body.querySelectorAll(".lib-status-select").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const store = loadStore();
+        store.items[+sel.dataset.idx].status = sel.value;
+        saveStore(store);
+        renderLibrary(); // 重渲以显示/隐藏效果按钮
+      });
+    });
+
+    // 效果反馈
+    body.querySelectorAll(".eff-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const store = loadStore();
+        const idx = +btn.dataset.idx;
+        store.items[idx].effect = btn.dataset.eff;
+        saveStore(store);
+        renderLibrary();
+        showToast(`已记录效果：${btn.dataset.eff === "hit" ? "🔥 爆款" : btn.dataset.eff === "mid" ? "→ 一般" : "↓ 没起来"}`);
+      });
+    });
+  }
+
+  /* ─────────────── 样例数据 ─────────────── */
+  const SAMPLES = [
+    {
+      vertical: "职场成长", stage: "growth",
+      audience: "22-28岁应届生和职场新人，关注涨薪、跳槽和职场人际",
+      topContent: "「5个不敢说出口的职场潜规则」播放量50万",
+      sellingPoint: "真实职场经验，帮新人少走弯路",
+    },
+    {
+      vertical: "AI工具", stage: "cold",
+      audience: "想用AI提效的普通职场人，30岁左右，非技术背景",
+      topContent: "",
+      sellingPoint: "用Claude Code和Cursor做个人小工具，不用写代码",
+    },
+  ];
+  let sampleIndex = 0;
+
+  function fillSample(idx) {
+    const s = SAMPLES[idx % SAMPLES.length];
+    $("vertical").value = s.vertical;
+    selectedStage = s.stage;
+    document.querySelectorAll(".stage-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.stage === s.stage);
+    });
+    $("audience").value = s.audience;
+    $("topContent").value = s.topContent;
+    $("sellingPoint").value = s.sellingPoint;
+    showToast(`已填入样例：${s.vertical}，正在生成选题…`);
+    // 自动触发生成
+    setTimeout(() => $("generateBtn").click(), 300);
+  }
+
+  /* ─────────────── 竞品分析 ─────────────── */
+  function analyzeRival(rawText, vertical) {
+    const lines = rawText.split("\n").map(l => l.trim()).filter(l => l.length > 3);
+    if (lines.length < 3) return null;
+
+    const allText = lines.join(" ");
+
+    // 统计钩子类型频次
+    const hookCount = {
+      "悬念提问": 0, "警示规避": 0, "数字冲击": 0,
+      "个人故事": 0, "人群共鸣": 0, "对比反差": 0, "揭秘内幕": 0,
+    };
+    lines.forEach(l => {
+      if (/为什么|凭什么|怎么|如何|真的吗/.test(l))      hookCount["悬念提问"]++;
+      if (/千万|警惕|别再|不要|停止|避坑|踩坑/.test(l))  hookCount["警示规避"]++;
+      if (/\d+个|\d+步|\d+天|[一二三四五六七八九十]+个/.test(l)) hookCount["数字冲击"]++;
+      if (/我|亲身|真实|经历|故事|那年/.test(l))          hookCount["个人故事"]++;
+      if (/普通人|你|新手|小白|打工人|月薪/.test(l))       hookCount["人群共鸣"]++;
+      if (/vs|VS|对比|区别|相比|之前.*之后/.test(l))       hookCount["对比反差"]++;
+      if (/没人告诉|内部|真相|秘密|不公开/.test(l))        hookCount["揭秘内幕"]++;
+    });
+
+    // 按频次排序，取 top 3
+    const sortedHooks = Object.entries(hookCount)
+      .filter(([,v]) => v > 0)
+      .sort((a,b) => b[1]-a[1])
+      .slice(0, 4);
+
+    // 统计高频话题词
+    const vt = vertical || "其他";
+    const vtTopicList = VERTICAL_TOPICS[vt] || VERTICAL_TOPICS["其他"];
+    const topicFreq = {};
+    vtTopicList.forEach(kw => {
+      const count = lines.filter(l => l.includes(kw)).length;
+      if (count > 0) topicFreq[kw] = count;
+    });
+    const topTopics = Object.entries(topicFreq).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+    // 已覆盖话题 → 找空白话题（在词库里但竞品没提到的）
+    const coveredTopics = new Set(Object.keys(topicFreq));
+    const gapTopics = vtTopicList.filter(t => !coveredTopics.has(t)).slice(0, 4);
+
+    // 竞品钩子偏好 → 反向差异化建议
+    const usedHookSet = new Set(sortedHooks.map(([h]) => h));
+    const allHookNames = Object.keys(hookCount);
+    const unusedHooks = allHookNames.filter(h => !usedHookSet.has(h)).slice(0, 3);
+
+    // 生成针对性选题建议（基于空白话题 + 未用钩子）
+    const suggestions = [];
+    gapTopics.slice(0, 3).forEach((topic, i) => {
+      const hookName = unusedHooks[i % unusedHooks.length] || "个人故事";
+      // 反向查找钩子 key
+      const hookKeyMap = {
+        "悬念提问":"question","警示规避":"mistake","数字冲击":"number",
+        "个人故事":"story","人群共鸣":"identity","对比反差":"contrast","揭秘内幕":"secret"
+      };
+      const hookKey = hookKeyMap[hookName] || "question";
+      suggestions.push({
+        title: buildTitle(topic, $("audience").value, hookKey, selectedStage || "growth"),
+        reason: `竞品未涉及「${topic}」话题 × 较少使用「${hookName}」钩子 → 差异化机会`,
+      });
+    });
+
+    return { lines: lines.length, sortedHooks, topTopics, gapTopics, unusedHooks, suggestions };
+  }
+
+  function renderRivalResult(result) {
+    if (!result) {
+      $("rivalOutput").innerHTML = `<div class="empty" style="min-height:80px">请至少粘贴 3 条竞品标题</div>`;
+      return;
+    }
+    $("rivalOutput").innerHTML = `
+      <div class="rival-section">
+        <h4>🎣 竞品高频钩子（分析 ${result.lines} 条标题）</h4>
+        <div class="rival-tag-row">
+          ${result.sortedHooks.map(([h,c]) =>
+            `<span class="rival-tag">${h} <span style="opacity:.6;margin-left:3px">×${c}</span></span>`
+          ).join("") || "<span style='color:var(--muted);font-size:12px'>未识别到明显规律</span>"}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:7px;line-height:1.6">
+          竞品的钩子策略以上述类型为主，你可以在这些类型上做得更深，或切换到他们不擅长的方向。
+        </div>
+      </div>
+
+      <div class="rival-section">
+        <h4>📌 竞品话题覆盖 vs 空白</h4>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">已覆盖（竞品常做）</div>
+        <div class="rival-tag-row">
+          ${result.topTopics.length
+            ? result.topTopics.map(([t,c]) => `<span class="rival-tag">${t} <span style="opacity:.6;margin-left:3px">×${c}</span></span>`).join("")
+            : "<span style='color:var(--muted);font-size:12px'>未匹配到垂类话题词</span>"}
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--lime);margin:10px 0 5px">⚡ 差异化空白（竞品较少涉及）</div>
+        <div class="rival-tag-row">
+          ${result.gapTopics.length
+            ? result.gapTopics.map(t => `<span class="rival-tag gap">${t}</span>`).join("")
+            : "<span style='color:var(--muted);font-size:12px'>暂无明显空白</span>"}
+        </div>
+      </div>
+
+      <div class="rival-section">
+        <h4>💡 针对性差异化选题建议</h4>
+        ${result.suggestions.length ? `<ul class="rival-suggest-list">
+          ${result.suggestions.map(s => `
+            <li>
+              <strong style="color:var(--text)">${escHtml(s.title)}</strong>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">${escHtml(s.reason)}</div>
+            </li>
+          `).join("")}
+        </ul>` : `<p style="font-size:12px;color:var(--muted)">请选择正确的垂类以获得选题建议</p>`}
+      </div>
+    `;
+  }
+
+  /* ─────────────── 事件绑定 ─────────────── */
+  $("generateBtn").addEventListener("click", () => {
+    const vertical = $("vertical").value;
+    const audience = $("audience").value.trim();
+    const sellingPoint = $("sellingPoint").value.trim();
+    if (!vertical) { showToast("请先选择内容垂类"); return; }
+    if (!selectedStage) { showToast("请选择账号阶段"); return; }
+
+    $("topicOutput").innerHTML = `<div style="padding:8px 0">${Array(4).fill('<div class="skeleton"></div>').join("")}</div>`;
+    $("generateBtn").disabled = true;
+
+    setTimeout(() => {
+      const groups = generateTopics(vertical, selectedStage, audience, sellingPoint);
+      renderTopics(groups);
+      $("generateBtn").disabled = false;
+    }, 900);
+  });
+
+  $("deconBtn").addEventListener("click", () => {
+    const text = $("deconInput").value.trim();
+    if (!text) { showToast("请先粘贴对标爆款内容"); return; }
+    $("deconOutput").innerHTML = `<div style="padding:4px 0">${Array(3).fill('<div class="skeleton" style="height:60px"></div>').join("")}</div>`;
+    $("deconBtn").disabled = true;
+    setTimeout(() => {
+      const vertical = $("deconVertical").value || $("vertical").value;
+      const result = deconstructContent(text, vertical);
+      renderDeconstruct(result);
+      $("deconBtn").disabled = false;
+    }, 800);
+  });
+
+  $("rivalBtn").addEventListener("click", () => {
+    const text = $("rivalInput").value.trim();
+    if (!text) { showToast("请先粘贴竞品视频标题"); return; }
+    $("rivalOutput").innerHTML = `<div style="padding:4px 0">${Array(3).fill('<div class="skeleton" style="height:56px"></div>').join("")}</div>`;
+    $("rivalBtn").disabled = true;
+    setTimeout(() => {
+      const vertical = $("rivalVertical").value || $("vertical").value;
+      const result = analyzeRival(text, vertical);
+      renderRivalResult(result);
+      $("rivalBtn").disabled = false;
+    }, 1000);
+  });
+
+  // Tab 切换
+  $("tabDecon").addEventListener("click", () => {
+    $("tabDecon").classList.add("active");
+    $("tabRival").classList.remove("active");
+    $("paneDecon").classList.add("active");
+    $("paneRival").classList.remove("active");
+  });
+  $("tabRival").addEventListener("click", () => {
+    $("tabRival").classList.add("active");
+    $("tabDecon").classList.remove("active");
+    $("paneRival").classList.add("active");
+    $("paneDecon").classList.remove("active");
+  });
+
+  $("sampleBtn").addEventListener("click", () => {
+    fillSample(sampleIndex);
+    sampleIndex++;
+  });
+
+  $("libraryBtn").addEventListener("click", () => {
+    renderLibrary();
+    $("libraryDrawer").classList.add("open");
+    $("drawerOverlay").classList.add("open");
+  });
+  $("closeDrawerBtn").addEventListener("click", () => {
+    $("libraryDrawer").classList.remove("open");
+    $("drawerOverlay").classList.remove("open");
+  });
+  $("drawerOverlay").addEventListener("click", () => {
+    $("libraryDrawer").classList.remove("open");
+    $("drawerOverlay").classList.remove("open");
+  });
+
+  $("changelogToggle").addEventListener("click", () => {
+    const cl = $("changelog");
+    const open = cl.classList.toggle("open");
+    $("changelogToggle").setAttribute("aria-expanded", open);
+  });
+  initFeedback();
+</script>
+</body>
+</html>

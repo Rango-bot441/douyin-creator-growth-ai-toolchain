@@ -1,0 +1,1754 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>抖音创作者成长 AI 工具链</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07071a;
+      --card: rgba(255,255,255,.045);
+      --card-hover: rgba(255,255,255,.075);
+      --line: rgba(255,255,255,.09);
+      --text: #e6edf3;
+      --muted: rgba(255,255,255,.45);
+      --accent: #e8450a;
+      --yellow: #ffe600;
+      --blue: #3b82f6;
+      --green: #4ade80;
+      --purple: #a78bfa;
+      --dark: #0a0a0f;
+      --dark-2: #1a1a2e;
+      --fast: 200ms ease;
+      --medium: 400ms cubic-bezier(.16,1,.3,1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; background: #07071a; }
+
+    body {
+      min-height: 100vh;
+      background: #07071a;
+      color: var(--text);
+      font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -30%;
+      width: 160%;
+      height: 160%;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(232,69,10,.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(59,130,246,.06) 0%, transparent 45%),
+        radial-gradient(ellipse at 60% 80%, rgba(167,139,250,.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 10% 90%, rgba(20,15,45,.15) 0%, transparent 40%);
+      animation: nebulaDrift 60s ease-in-out infinite alternate;
+    }
+
+    @keyframes nebulaDrift {
+      0% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(5%,-3%) scale(1.02); }
+      66% { transform: translate(-4%,4%) scale(.98); }
+      100% { transform: translate(3%,-2%) scale(1.01); }
+    }
+
+    .page-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #07071a;
+      transition: opacity .4s ease, visibility .4s ease;
+    }
+
+    .page-loader.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: loaderBounce .6s ease-in-out infinite alternate;
+    }
+    .loader-dot:nth-child(2) { animation-delay: .15s; background: var(--yellow); }
+    .loader-dot:nth-child(3) { animation-delay: .3s; background: var(--blue); }
+    @keyframes loaderBounce { 0% { transform: translateY(0); opacity: .4; } 100% { transform: translateY(-12px); opacity: 1; } }
+
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 200;
+      width: 0;
+      height: 2.5px;
+      background: linear-gradient(90deg, var(--accent), var(--yellow));
+      transition: width 60ms linear;
+      pointer-events: none;
+    }
+
+    .cursor-glow {
+      position: fixed;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(circle, rgba(232,69,10,.06) 0%, transparent 70%);
+      transform: translate(-50%,-50%);
+      transition: left .08s linear, top .08s linear;
+      will-change: left, top;
+      opacity: 0;
+    }
+    .cursor-glow.active { opacity: 1; }
+
+    .shooting-stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .shooting-star {
+      position: absolute;
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,.8), rgba(255,255,255,.1), transparent);
+      border-radius: 999px;
+      opacity: 0;
+      animation: shoot linear infinite;
+    }
+    .shooting-star::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -2px;
+      width: 8px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 0 8px 3px rgba(255,255,255,.5), 0 0 20px 6px rgba(200,200,255,.2);
+    }
+    .shooting-star:nth-child(1) { top: 15%; left: 75%; width: 150px; animation-duration: 3.5s; animation-delay: 2s; }
+    .shooting-star:nth-child(2) { top: 8%; left: 50%; width: 120px; animation-duration: 3s; animation-delay: 8s; }
+    .shooting-star:nth-child(3) { top: 25%; left: 85%; width: 180px; animation-duration: 4s; animation-delay: 14s; }
+    .shooting-star:nth-child(4) { top: 35%; left: 30%; width: 100px; animation-duration: 2.8s; animation-delay: 20s; }
+    .shooting-star:nth-child(5) { top: 12%; left: 60%; width: 130px; animation-duration: 3.2s; animation-delay: 26s; }
+    .shooting-star:nth-child(6) { top: 40%; left: 70%; width: 90px; animation-duration: 2.6s; animation-delay: 32s; }
+    @keyframes shoot {
+      0% { transform: translateX(0) translateY(0) rotate(-35deg); opacity: 0; }
+      2% { opacity: 1; }
+      50% { opacity: .4; }
+      100% { transform: translateX(-600px) translateY(360px) rotate(-35deg); opacity: 0; }
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      width: min(1200px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 40px 0 80px;
+    }
+
+    /* ── Header ── */
+    .header {
+      position: relative;
+      margin-bottom: 56px;
+      padding: clamp(40px, 6vw, 72px) 0 8px;
+      overflow: hidden;
+    }
+
+    .hero-glow {
+      position: absolute;
+      inset: -120px -80px;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(600px circle at var(--mx,30%) var(--my,50%), rgba(232,69,10,.1) 0%, transparent 60%),
+        radial-gradient(circle at 50% 100%, rgba(232,69,10,.18), transparent 24%),
+        radial-gradient(circle at 14% 22%, rgba(59,130,246,.1), transparent 24%);
+      transition: background .1s;
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      inset: -120px -80px;
+      opacity: .28;
+      pointer-events: none;
+      z-index: -2;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.22) 1px, transparent 1.4px),
+        radial-gradient(circle, rgba(255,255,255,.1) 1px, transparent 1.5px);
+      background-size: 140px 140px, 260px 260px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: 1px solid rgba(232,69,10,.3);
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(232,69,10,.1);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .hero-entry-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .personal-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px;
+      color: rgba(255,255,255,.76);
+      background: rgba(255,255,255,.045);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      transition: all .18s;
+    }
+
+    .personal-link:hover {
+      color: #fff;
+      border-color: rgba(232,69,10,.34);
+      background: rgba(232,69,10,.08);
+    }
+
+    .dot-live {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    h1 {
+      font-size: clamp(42px, 5vw, 76px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -.04em;
+      margin-bottom: 28px;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: slideIn 800ms var(--medium) forwards;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: #fff;
+      position: relative;
+      display: inline;
+      z-index: 0;
+    }
+
+    h1 em::after {
+      content: "";
+      position: absolute;
+      left: -4px;
+      right: -4px;
+      bottom: 3px;
+      height: .26em;
+      background: var(--accent);
+      opacity: .5;
+      z-index: -1;
+      border-radius: 3px;
+    }
+
+    .lead {
+      max-width: 680px;
+      color: rgba(255,255,255,.58);
+      font-size: 16px;
+      line-height: 2.05;
+      letter-spacing: .008em;
+    }
+
+    /* ── Pipeline bar ── */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 32px 0 0;
+      padding: 12px 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 56px rgba(0,0,0,.18);
+      flex-wrap: wrap;
+    }
+
+    .pl-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-right: 6px;
+    }
+
+    .pl-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,.1);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .18s;
+      white-space: nowrap;
+    }
+
+    .pl-step:hover {
+      color: var(--text);
+      border-color: rgba(255,255,255,.25);
+      background: rgba(255,255,255,.06);
+    }
+
+    .pl-step.is-core {
+      color: #fff;
+      border-color: rgba(255,112,67,.62);
+      background: linear-gradient(180deg, rgba(232,69,10,.24), rgba(232,69,10,.12));
+      box-shadow: 0 0 0 1px rgba(232,69,10,.16), 0 10px 30px rgba(232,69,10,.2);
+    }
+
+    .pl-arrow { color: var(--muted); font-size: 11px; opacity: .4; }
+
+    /* ── Market insight banner ── */
+    .insight-banner {
+      margin-top: 16px;
+      padding: 14px 18px;
+      border: 1px solid rgba(232,69,10,.25);
+      border-radius: 14px;
+      background: rgba(232,69,10,.06);
+      font-size: 13px;
+      line-height: 1.75;
+      color: rgba(255,255,255,.72);
+      backdrop-filter: blur(12px);
+    }
+
+    .insight-banner strong { color: #fff; }
+
+    .demo-path {
+      margin-top: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.16);
+    }
+
+    .demo-path-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .demo-path-head h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .demo-path-head p {
+      margin: 0;
+      color: rgba(255,255,255,.58);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .demo-path-badge {
+      flex: 0 0 auto;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,69,10,.35);
+      color: var(--accent);
+      background: rgba(232,69,10,.08);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .demo-case {
+      margin: 0 20px 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.64);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .demo-case strong { color: #fff; }
+
+    .demo-steps {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0;
+    }
+
+    .demo-step {
+      display: grid;
+      gap: 8px;
+      min-height: 170px;
+      padding: 16px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      color: inherit;
+      text-decoration: none;
+      transition: background .18s ease, transform .18s ease;
+    }
+
+    .demo-step:last-child { border-right: 0; }
+    .demo-step:hover { background: rgba(255,255,255,.055); transform: translateY(-1px); }
+    .demo-step b { color: #fff; font-size: 14px; }
+    .demo-step p { margin: 0; color: rgba(255,255,255,.6); font-size: 12px; line-height: 1.65; }
+    .demo-step small { color: rgba(255,255,255,.38); line-height: 1.55; }
+    .demo-num { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: #fff; background: var(--accent); font-size: 12px; font-weight: 900; }
+
+    .product-brief {
+      margin-top: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(232,69,10,.04));
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .product-brief-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .product-brief-head h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .product-brief-head p {
+      margin: 0;
+      color: rgba(255,255,255,.58);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .brief-badge {
+      flex: 0 0 auto;
+      border: 1px solid rgba(255,230,0,.28);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: var(--yellow);
+      background: rgba(255,230,0,.06);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .brief-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .brief-item {
+      padding: 16px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      min-height: 154px;
+    }
+
+    .brief-item:last-child { border-right: 0; }
+    .brief-item b { display: block; margin-bottom: 7px; color: #fff; font-size: 14px; }
+    .brief-item p { margin: 0; color: rgba(255,255,255,.6); font-size: 12px; line-height: 1.7; }
+
+    /* ── Cards ── */
+    .section-title {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform .25s ease, border-color .2s ease, box-shadow .25s ease, background .25s ease;
+      overflow: hidden;
+      min-height: 282px;
+      backdrop-filter: blur(10px);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(320px circle at var(--mx,50%) var(--my,50%), rgba(232,69,10,.11) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      border-color: rgba(232,69,10,.32);
+      background: rgba(16,12,18,.82);
+      transform: translateY(-4px) scale(1.015);
+      box-shadow: 0 0 0 1px rgba(232,69,10,.16), 0 18px 56px rgba(0,0,0,.35), 0 0 34px rgba(232,69,10,.08);
+    }
+    .card:hover::before { opacity: 1; }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .tag {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid rgba(255,255,255,.12);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .tag.highlight {
+      border-color: rgba(232,69,10,.35);
+      color: #ff9a6c;
+      background: rgba(232,69,10,.08);
+    }
+
+    .card h2 {
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 10px;
+      letter-spacing: -.01em;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: rgba(255,255,255,.58);
+      line-height: 1.7;
+      flex: 1;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .card-meta { font-size: 12px; color: rgba(255,255,255,.3); }
+
+    .card-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Color themes per card ── */
+    .c1 .step-badge { background: rgba(34,244,255,.12); color: #22f4ff; }
+    .c2 .step-badge { background: rgba(15,139,111,.15); color: #0f8b6f; }
+    .c3 .step-badge { background: rgba(15,159,179,.15); color: #0f9fb3; }
+    .c4 .step-badge { background: rgba(47,107,255,.15); color: #2f6bff; }
+    .c5 .step-badge { background: rgba(22,122,90,.15); color: #167a5a; }
+    .c6 .step-badge { background: rgba(225,77,42,.15); color: #e14d2a; }
+
+    .c1:hover { border-color: rgba(34,244,255,.25); }
+    .c2:hover { border-color: rgba(15,139,111,.25); }
+    .c3:hover { border-color: rgba(15,159,179,.25); }
+    .c4:hover { border-color: rgba(47,107,255,.25); }
+    .c5:hover { border-color: rgba(22,122,90,.25); }
+    .c6:hover { border-color: rgba(225,77,42,.25); }
+
+    .card.is-core {
+      border-color: rgba(255,112,67,.66);
+      background:
+        radial-gradient(circle at 50% 65%, rgba(255,112,67,.2), transparent 38%),
+        linear-gradient(180deg, rgba(232,69,10,.18), rgba(255,255,255,.045)),
+        rgba(255,255,255,.045);
+      box-shadow:
+        0 0 0 1px rgba(255,112,67,.24),
+        0 0 34px rgba(232,69,10,.2),
+        0 24px 70px rgba(0,0,0,.28);
+    }
+
+    .card.is-core::after {
+      content: "JD 核心能力验证";
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255,112,67,.52);
+      border-radius: 999px;
+      color: #ffd1bf;
+      background: rgba(232,69,10,.22);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .card.is-core .card-tags { padding-right: 126px; }
+    .card.is-core h2 { font-size: 21px; }
+    .card.is-core .card-cta { color: #ff9a6c; }
+    .card.is-core .step-badge {
+      background: rgba(232,69,10,.22);
+      color: #ff9a6c;
+      box-shadow: inset 0 0 0 1px rgba(255,112,67,.24), 0 10px 28px rgba(232,69,10,.2);
+    }
+
+    /* ── Feedback dashboard ── */
+    .feedback-dashboard {
+      margin-top: 24px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.16);
+    }
+
+    .feedback-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .feedback-head h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .feedback-head p {
+      margin: 0;
+      max-width: 760px;
+      color: rgba(255,255,255,.58);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .feedback-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .feedback-action {
+      min-height: 34px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px;
+      padding: 0 12px;
+      color: rgba(255,255,255,.75);
+      background: rgba(255,255,255,.045);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 850;
+      transition: all .16s ease;
+    }
+
+    .feedback-action:hover {
+      color: #fff;
+      border-color: rgba(232,69,10,.35);
+      background: rgba(232,69,10,.08);
+    }
+
+    .feedback-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .feedback-stat {
+      padding: 16px 18px;
+      border-right: 1px solid rgba(255,255,255,.08);
+    }
+
+    .feedback-stat:last-child { border-right: 0; }
+    .feedback-stat b { display: block; margin-bottom: 6px; color: #fff; font-size: 24px; line-height: 1; }
+    .feedback-stat span { color: rgba(255,255,255,.45); font-size: 12px; font-weight: 800; }
+
+    .feedback-table-wrap { overflow-x: auto; }
+
+    .feedback-table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .feedback-table th {
+      padding: 11px 14px;
+      text-align: left;
+      color: rgba(255,255,255,.42);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .feedback-table td {
+      padding: 12px 14px;
+      color: rgba(255,255,255,.68);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+
+    .feedback-table tr:last-child td { border-bottom: 0; }
+    .feedback-tool { color: #fff; font-weight: 900; }
+    .feedback-empty { color: rgba(255,255,255,.3); }
+    .feedback-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      white-space: nowrap;
+      font-weight: 900;
+    }
+    .feedback-pill.up { color: #4ade80; background: rgba(74,222,128,.08); border-color: rgba(74,222,128,.24); }
+    .feedback-pill.down { color: #ff9a6c; background: rgba(232,69,10,.08); border-color: rgba(232,69,10,.24); }
+    .feedback-note-text { max-width: 360px; color: rgba(255,255,255,.68); }
+    .feedback-summary {
+      padding: 12px 18px;
+      color: rgba(255,255,255,.45);
+      font-size: 12px;
+      line-height: 1.7;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .feedback-link-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+      padding: 12px 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.62);
+      font-size: 13px;
+      line-height: 1.6;
+      text-decoration: none;
+      transition: all .18s ease;
+    }
+
+    .feedback-link-strip:hover {
+      color: #fff;
+      border-color: rgba(232,69,10,.35);
+      background: rgba(232,69,10,.07);
+      transform: translateY(-1px);
+    }
+
+    .feedback-link-strip strong {
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .feedback-link-strip span:last-child {
+      color: var(--accent);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    /* ── Diff section ── */
+    .diff-section {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .diff-item {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      font-size: 13px;
+      line-height: 1.75;
+      color: rgba(255,255,255,.65);
+    }
+
+    .diff-item strong {
+      display: block;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+
+    .diff-item em {
+      font-style: normal;
+      color: #ff9a6c;
+    }
+
+    .strategy-review {
+      margin-top: 24px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.025));
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .strategy-head {
+      padding: 20px 22px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .strategy-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .strategy-head p {
+      margin: 0;
+      max-width: 860px;
+      color: rgba(255,255,255,.6);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .strategy-block {
+      padding: 18px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      min-height: 220px;
+    }
+
+    .strategy-block:last-child { border-right: 0; }
+    .strategy-block h3 { margin: 0 0 12px; font-size: 15px; color: #fff; }
+    .strategy-block ul { margin: 0; padding-left: 18px; color: rgba(255,255,255,.62); font-size: 12px; line-height: 1.75; }
+    .strategy-block li + li { margin-top: 7px; }
+
+    .mechanism-map {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.035);
+      overflow: hidden;
+    }
+
+    .mechanism-map-head {
+      padding: 18px 22px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .mechanism-map-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .mechanism-map-head p {
+      margin: 0;
+      max-width: 900px;
+      color: rgba(255,255,255,.6);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .mechanism-rows {
+      display: grid;
+    }
+
+    .mechanism-row {
+      display: grid;
+      grid-template-columns: minmax(190px, .72fr) minmax(0, 1fr) minmax(220px, .9fr);
+      gap: 16px;
+      padding: 15px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      align-items: start;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .mechanism-row:last-child { border-bottom: 0; }
+    .mechanism-row b { color: #fff; }
+    .mechanism-row span { color: rgba(255,255,255,.62); }
+    .mechanism-row small { color: rgba(255,255,255,.45); font-size: 12px; line-height: 1.65; }
+
+    .roadmap {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .roadmap-panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.035);
+      padding: 20px;
+    }
+
+    .roadmap-panel h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .roadmap-panel p {
+      margin: 0 0 14px;
+      color: rgba(255,255,255,.58);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .roadmap-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .roadmap-item {
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,.025);
+      color: rgba(255,255,255,.62);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .roadmap-item b {
+      display: block;
+      margin-bottom: 4px;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .roadmap-item span {
+      display: block;
+      margin-top: 4px;
+    }
+
+    .roadmap-item em {
+      color: rgba(255,255,255,.88);
+      font-style: normal;
+      font-weight: 850;
+    }
+
+    .truth-note {
+      margin-top: 18px;
+      border: 1px solid rgba(255,230,0,.18);
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: rgba(255,230,0,.04);
+      color: rgba(255,255,255,.64);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .truth-note strong { color: #fff; }
+
+    /* ── Product story ── */
+    .focus-hero-note {
+      max-width: 1040px;
+      margin-top: 22px;
+      padding: 16px 18px;
+      border: 1px solid rgba(232,69,10,.25);
+      border-radius: 16px;
+      background: rgba(232,69,10,.065);
+      color: rgba(255,255,255,.72);
+      font-size: 14px;
+      line-height: 1.85;
+    }
+
+    .focus-hero-note strong { color: #fff; }
+
+    .focus-section {
+      margin-top: 24px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.16);
+    }
+
+    .focus-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .focus-head h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: -.01em;
+    }
+
+    .focus-head p {
+      margin: 0;
+      max-width: 760px;
+      color: rgba(255,255,255,.62);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .focus-badge {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border: 1px solid rgba(255,230,0,.26);
+      border-radius: 999px;
+      color: var(--yellow);
+      background: rgba(255,230,0,.06);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .focus-contrast {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .contrast-card {
+      min-height: 210px;
+      padding: 22px;
+      border-right: 1px solid rgba(255,255,255,.08);
+    }
+
+    .contrast-card:last-child { border-right: 0; }
+    .contrast-card span { color: var(--accent); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .contrast-card h3 { margin: 10px 0 10px; color: #fff; font-size: 20px; line-height: 1.3; }
+    .contrast-card p { margin: 0; color: rgba(255,255,255,.62); font-size: 13px; line-height: 1.85; }
+
+    .focus-quote {
+      margin: 0;
+      padding: 18px 24px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.78);
+      background: rgba(232,69,10,.045);
+      font-size: 15px;
+      line-height: 1.8;
+      font-weight: 800;
+    }
+
+    .jd-map {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .jd-map-item {
+      min-height: 168px;
+      padding: 20px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.018);
+    }
+
+    .jd-map-item:last-child { border-right: 0; }
+    .jd-map-item span {
+      display: inline-flex;
+      margin-bottom: 10px;
+      color: #ff9a6c;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .jd-map-item h3 {
+      margin: 0 0 9px;
+      color: #fff;
+      font-size: 17px;
+      line-height: 1.35;
+    }
+    .jd-map-item p {
+      margin: 0;
+      color: rgba(255,255,255,.62);
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .research-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+    }
+
+    .research-card {
+      padding: 24px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      min-height: 430px;
+      display: grid;
+      align-content: space-between;
+      gap: 18px;
+    }
+
+    .research-card:last-child { border-right: 0; }
+
+    .research-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .research-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      font-size: 26px;
+      flex: 0 0 auto;
+    }
+
+    .research-card h3 {
+      margin: 0 0 8px;
+      color: #fff;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .research-card p {
+      margin: 0;
+      color: rgba(255,255,255,.62);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .research-label {
+      display: inline-flex;
+      margin-bottom: 8px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,69,10,.3);
+      color: #ff9a6c;
+      background: rgba(232,69,10,.08);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .research-list {
+      display: grid;
+      gap: 10px;
+      margin: 18px 0 0;
+    }
+
+    .research-list div {
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,.03);
+      color: rgba(255,255,255,.65);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .research-list b {
+      display: block;
+      margin-bottom: 3px;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .research-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .focus-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid rgba(232,69,10,.35);
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(232,69,10,.12);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .focus-button.secondary {
+      border-color: rgba(255,255,255,.14);
+      color: rgba(255,255,255,.7);
+      background: rgba(255,255,255,.04);
+    }
+
+    .supporting-tools {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .supporting-tool {
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      text-decoration: none;
+      color: rgba(255,255,255,.62);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .supporting-tool b {
+      display: block;
+      margin-bottom: 5px;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .strategy-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .strategy-block:nth-child(2) { border-right: 0; }
+      .strategy-block:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.08); }
+      .brief-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .brief-item:nth-child(2) { border-right: 0; }
+      .brief-item:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.08); }
+      .focus-contrast, .research-grid, .supporting-tools, .jd-map { grid-template-columns: 1fr; }
+      .contrast-card, .research-card, .jd-map-item { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+      .contrast-card:last-child, .research-card:last-child, .jd-map-item:last-child { border-bottom: 0; }
+    }
+
+    @media (max-width: 860px) {
+      .diff-section { grid-template-columns: 1fr; }
+    }
+
+    /* ── PRD aside badge ── */
+    .tag.aside {
+      border-color: rgba(255,255,255,.18);
+      color: rgba(255,255,255,.5);
+      background: rgba(255,255,255,.04);
+    }
+
+    .footer {
+      margin-top: 56px;
+      padding-top: 28px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,.25);
+    }
+
+    .footer b { color: rgba(255,255,255,.45); }
+
+    @media (max-width: 640px) {
+      .shell { padding: 28px 0 60px; width: min(100% - 28px, 1200px); }
+      .pipeline { flex-wrap: nowrap; overflow-x: auto; padding: 10px 12px; }
+      .pl-label, .pl-step, .pl-arrow { flex: 0 0 auto; }
+      .demo-path-head { display: grid; }
+      .product-brief-head { display: grid; }
+      .brief-grid { grid-template-columns: 1fr; }
+      .brief-item { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.08); min-height: 0; }
+      .demo-steps { grid-template-columns: 1fr; }
+      .demo-step { min-height: 0; border-right: 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+      .strategy-grid { grid-template-columns: 1fr; }
+      .strategy-block { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.08); min-height: 0; }
+      .mechanism-row { grid-template-columns: 1fr; gap: 6px; }
+      .roadmap { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: 1fr; }
+      h1 { font-size: 38px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-loader" id="pageLoader">
+  <div class="loader-dot"></div>
+  <div class="loader-dot"></div>
+  <div class="loader-dot"></div>
+</div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="shooting-stars">
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+</div>
+<div class="scroll-progress" id="scrollProgress"></div>
+<div class="shell">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="hero-glow" id="heroGlow"></div>
+    <div class="hero-entry-row">
+      <div class="eyebrow">
+        <span class="dot-live"></span>
+        Douyin Creator Growth AI Toolchain
+      </div>
+      <a class="personal-link" href="https://rango0424.netlify.app" target="_blank" rel="noreferrer">个人网站入口 →</a>
+    </div>
+    <h1>抖音创作者成长<br><em>AI 工具链</em></h1>
+    <p class="lead">基于近 4 年创作者运营经验，沉淀对创作者痛点、内容表现和成长路径的理解，探索 AI 如何把经验、数据和平台策略转化为可复用的产品机制。</p>
+    <div class="focus-hero-note">
+      <strong>核心定位：</strong>围绕账号阶段、垂类特点、内容表现和创作目标，提供贴近真实运营场景的成长建议。
+    </div>
+
+    <div class="pipeline">
+      <span class="pl-label">创作者增长闭环</span>
+      <a class="pl-step" href="inspiration-station/index.html">①&nbsp;选题</a>
+      <span class="pl-arrow">→</span>
+      <a class="pl-step" href="content-safety-copilot/index.html">②&nbsp;合规</a>
+      <span class="pl-arrow">→</span>
+      <a class="pl-step is-core" href="creator-postmortem-ai/index.html">③&nbsp;复盘诊断</a>
+      <span class="pl-arrow">→</span>
+      <a class="pl-step is-core" href="creatorinsight-ai/index.html">④&nbsp;成长规划</a>
+      <span class="pl-arrow">→</span>
+      <a class="pl-step" href="ab-test-designer/index.html">⑤&nbsp;实验验证</a>
+      <span class="pl-arrow" style="opacity:.2">·</span>
+      <a class="pl-step" href="prd-copilot/index.html" style="opacity:.72">+&nbsp;PRD</a>
+    </div>
+  </header>
+
+  <section class="focus-section" aria-label="跟市面竞品的差异化思考">
+    <div class="focus-head">
+      <div>
+        <h2>1. 和市面竞品的核心差异</h2>
+        <p>市面工具多集中在内容生成、剪辑、热点和合规检测。真正薄弱的是发布后的复盘、成长决策和验证闭环。</p>
+      </div>
+      <span class="focus-badge">差异化重点</span>
+    </div>
+    <div class="focus-contrast">
+      <div class="contrast-card">
+        <span>Market Has</span>
+        <h3>市面工具强在执行层</h3>
+        <p>剪映、Coze、GPTs、即梦、热点榜单、词库检测等工具，主要帮助创作者生成内容、剪视频、查风险、看趋势。</p>
+      </div>
+      <div class="contrast-card">
+        <span>Market Gap</span>
+        <h3>共同缺口在发布后</h3>
+        <p>内容发出去以后，创作者仍然不知道为什么没跑出来，也不知道下一周该先改标题、开头、结构还是选题方向。</p>
+      </div>
+      <div class="contrast-card">
+        <span>Our Focus</span>
+        <h3>聚焦复盘 + 成长层</h3>
+        <p>把内容数据、脚本结构、账号阶段和创作者目标结合起来，形成「复盘诊断 → 成长规划 → 实验验证」的迭代机制。</p>
+      </div>
+    </div>
+    <p class="focus-quote">差异化重点：从“帮创作者生产内容”，推进到“帮创作者持续成长”。这里的成长不只指涨粉和爆款，也包括账号定位、内容资产沉淀和商业化变现能力。</p>
+    <div class="truth-note" style="margin:0;border-radius:0;border-left:0;border-right:0;border-bottom:0">
+      <strong>核心优势：个性化与定制化。</strong>围绕账号阶段、内容表现、垂类特点和创作目标生成建议，让 AI 输出更贴近真实运营场景。
+    </div>
+    <div class="jd-map" aria-label="岗位能力映射">
+      <div class="jd-map-item">
+        <span>JD 01</span>
+        <h3>AI 产品规划与落地</h3>
+        <p>通过 6 个原型工具，把「选题、创作、发布、复盘、成长」做成一条可体验的产品链路。</p>
+      </div>
+      <div class="jd-map-item">
+        <span>JD 02</span>
+        <h3>创作者经验产品化</h3>
+        <p>把优秀创作者的复盘方法、账号阶段判断和增长动作，拆成可复用的 AI 产品机制。</p>
+      </div>
+      <div class="jd-map-item">
+        <span>JD 03</span>
+        <h3>数据驱动迭代</h3>
+        <p>围绕完播、互动、转粉、转化线索和用户反馈，设计可跟进、可验证的迭代闭环。</p>
+      </div>
+      <div class="jd-map-item">
+        <span>JD 04</span>
+        <h3>原型与 PRD 输出</h3>
+        <p>把前面的运营问题继续拆成需求卡、指标口径和 PRD 草案，让洞察能进入后续产品协作。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="focus-section" aria-label="发布后的两个关键层">
+    <div class="focus-head">
+      <div>
+        <h2>2. 发布后的两个关键层</h2>
+        <p>创作前工具很多，但发布后的复盘归因和成长规划更少被产品化。这里重点拆解 ③ 复盘诊断和 ④ 成长规划。</p>
+      </div>
+      <span class="focus-badge">优先深化工具</span>
+    </div>
+    <div class="research-grid">
+      <article class="research-card">
+        <div>
+          <div class="research-top">
+            <div>
+              <span class="research-label">③ 复盘层 · 关键决策层</span>
+              <h3>AI 复盘诊断台</h3>
+              <p>复盘层负责回答“为什么没跑出来”：结合脚本结构、作品数据和账号阶段，形成可验证的归因判断。</p>
+            </div>
+            <div class="research-icon">③</div>
+          </div>
+          <div class="research-list">
+            <div><b>要验证的能力</b>能否把脚本、标题、完播、互动、评论信号组合成可信归因。</div>
+            <div><b>关键价值</b>把模糊的失败感，转成可讨论、可验证的复盘结论。</div>
+            <div><b>后续重点</b>接入真实数据、评论语义、行业基准和历史复盘记录。</div>
+          </div>
+        </div>
+        <div class="research-actions">
+          <a class="focus-button" href="creator-postmortem-ai/index.html">体验复盘诊断 →</a>
+          <a class="focus-button secondary" href="feedback-dashboard.html">查看反馈</a>
+        </div>
+      </article>
+
+      <article class="research-card">
+        <div>
+          <div class="research-top">
+            <div>
+              <span class="research-label">④ 成长层 · 关键决策层</span>
+              <h3>创作者复盘成长助手</h3>
+              <p>成长层负责回答“下一步怎么做”：结合账号阶段、近期作品和垂类特点，输出优先级、内容建议和 7 天行动计划。</p>
+            </div>
+            <div class="research-icon">④</div>
+          </div>
+          <div class="research-list">
+            <div><b>要验证的能力</b>能否基于账号阶段和近期表现，判断本周优先级。</div>
+            <div><b>关键价值</b>把“知道问题”推进到“知道下一步怎么做”。</div>
+            <div><b>后续重点</b>接入成长记忆、实验回写和系列化内容资产。</div>
+          </div>
+        </div>
+        <div class="research-actions">
+          <a class="focus-button" href="creatorinsight-ai/index.html">体验成长规划 →</a>
+          <a class="focus-button secondary" href="ab-test-designer/index.html">进入实验验证</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="focus-section" aria-label="完整 Demo 工具链">
+    <div class="focus-head">
+      <div>
+        <h2>3. 完整 Demo 工具链</h2>
+        <p>前面重点拆解发布后的复盘层和成长层，这里展示它们在完整创作者工作流中的位置。6 个工具串起创作者真实工作流，③ 复盘诊断和 ④ 成长规划也是后续重点探索方向。</p>
+      </div>
+    </div>
+    <div class="cards">
+      <a class="card c1" href="inspiration-station/index.html">
+        <div class="card-top">
+          <div class="step-badge">①</div>
+          <div class="card-tags">
+            <span class="tag">选题 v2</span>
+            <span class="tag">账号阶段感知</span>
+            <span class="tag">竞品调研</span>
+          </div>
+        </div>
+        <h2>创作者灵感加油站</h2>
+        <p>解决“不知道拍什么”：输入垂类、账号阶段、受众和卖点，输出高潜力/差异化/长尾三类选题。</p>
+        <div class="card-footer">
+          <span class="card-meta">前置输入 · inspiration-station</span>
+          <span class="card-cta">打开工具 →</span>
+        </div>
+      </a>
+
+      <a class="card c2" href="content-safety-copilot/index.html">
+        <div class="card-top">
+          <div class="step-badge">②</div>
+          <div class="card-tags">
+            <span class="tag">合规</span>
+            <span class="tag">v2 · 多平台</span>
+          </div>
+        </div>
+        <h2>内容安全审核助手</h2>
+        <p>解决“发之前有没有风险”：发布前扫描风险表达，按平台差异给出改写建议，减少返工和限流误判。</p>
+        <div class="card-footer">
+          <span class="card-meta">风险控制 · content-safety</span>
+          <span class="card-cta">打开工具 →</span>
+        </div>
+      </a>
+
+      <a class="card c3 is-core" href="creator-postmortem-ai/index.html">
+        <div class="card-top">
+          <div class="step-badge">③</div>
+          <div class="card-tags">
+            <span class="tag highlight">指标复盘</span>
+            <span class="tag highlight">AI 归因</span>
+            <span class="tag">关键决策层</span>
+          </div>
+        </div>
+        <h2>AI 复盘诊断台</h2>
+        <p>结合脚本结构、作品数据和账号阶段，生成更具体的归因判断，帮助定位内容没有跑出来的原因。</p>
+        <div class="card-footer">
+          <span class="card-meta">JD 对应：复盘归因 · 指标迭代</span>
+          <span class="card-cta">打开工具 →</span>
+        </div>
+      </a>
+
+      <a class="card c4 is-core" href="creatorinsight-ai/index.html">
+        <div class="card-top">
+          <div class="step-badge">④</div>
+          <div class="card-tags">
+            <span class="tag highlight">成长策略</span>
+            <span class="tag highlight">个性化</span>
+            <span class="tag">关键决策层</span>
+          </div>
+        </div>
+        <h2>创作者复盘成长助手</h2>
+        <p>结合账号阶段、近期作品和垂类特点，输出优先级、内容建议和 7 天行动计划。</p>
+        <div class="card-footer">
+          <span class="card-meta">JD 对应：成长策略 · 个性化机制</span>
+          <span class="card-cta">打开工具 →</span>
+        </div>
+      </a>
+
+      <a class="card c5" href="ab-test-designer/index.html">
+        <div class="card-top">
+          <div class="step-badge">⑤</div>
+          <div class="card-tags">
+            <span class="tag highlight">实验</span>
+            <span class="tag highlight">验证闭环</span>
+            <span class="tag">指标设计</span>
+          </div>
+        </div>
+        <h2>A/B 实验设计助手</h2>
+        <p>解决“这个改法是否有效”：把增长动作转成实验组 / 对照组、样本量、周期、成功标准和风险提示。</p>
+        <div class="card-footer">
+          <span class="card-meta">结果验证 · ab-test</span>
+          <span class="card-cta">打开工具 →</span>
+        </div>
+      </a>
+
+      <a class="card c6" href="prd-copilot/index.html">
+        <div class="card-top">
+          <div class="step-badge">+</div>
+          <div class="card-tags">
+            <span class="tag aside">方案化</span>
+            <span class="tag">PRD</span>
+            <span class="tag">产品思维</span>
+          </div>
+        </div>
+        <h2>PRD Copilot</h2>
+        <p>方案延伸：将运营洞察转化为可执行产品需求，让增长链路中的问题进入需求拆解和产品化表达。</p>
+        <div class="card-footer">
+          <span class="card-meta">方案延伸 · prd-copilot</span>
+          <span class="card-cta">打开工具 →</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <a class="feedback-link-strip" href="feedback-dashboard.html" aria-label="打开用户反馈汇总明细">
+    <span><strong>4. 用户反馈与验证</strong> · <span id="feedbackInlineSummary">查看 6 个 demo 的点赞、点踩、原因和补充说明。</span></span>
+    <span>查看明细与导出 →</span>
+  </a>
+
+  <section class="roadmap" aria-label="落地路径与创作者分层策略">
+    <div class="roadmap-panel">
+      <h2>5.1 后续落地路径</h2>
+      <p>当前仍是 P0 机制验证原型，主要不足是未接入平台 API、真实账号数据和大模型能力。下一步先验证链路，再逐步补齐数据、模型、灰度测试和放量扩展。</p>
+      <div class="roadmap-list">
+        <div class="roadmap-item"><b>P0 · 链路验证</b><span><em>目标：</em>验证「选题 → 创作 → 发布 → 复盘 → 成长」路径是否顺畅。</span><span><em>动作：</em>观察任务完成率、下一步跳转率和用户反馈。</span></div>
+        <div class="roadmap-item"><b>P1 · 数据接入</b><span><em>目标：</em>从手填演示升级为真实数据辅助判断。</span><span><em>动作：</em>接入作品表现、评论、热点、平台规则和账号收益数据。</span></div>
+        <div class="roadmap-item"><b>P2 · 大模型增强</b><span><em>目标：</em>提升复盘归因、成长建议和变现策略的个性化程度。</span><span><em>动作：</em>接入 LLM 做语义复盘、追问澄清、建议生成和变现策略辅助。</span></div>
+        <div class="roadmap-item"><b>P3 · 灰度测试</b><span><em>目标：</em>验证真实创作者是否觉得建议有用。</span><span><em>动作：</em>邀请不同阶段、不同垂类创作者小范围试用。</span></div>
+        <div class="roadmap-item"><b>P4 · 放量扩展</b><span><em>目标：</em>从小范围试用扩展到更多垂类和账号阶段。</span><span><em>动作：</em>形成可复用的分层策略、运营 SOP 和产品模板。</span></div>
+        <div class="roadmap-item"><b>P5 · 资产沉淀</b><span><em>目标：</em>让经验可以长期复用。</span><span><em>动作：</em>沉淀选题库、复盘结论、成长动作、实验结果和变现案例。</span></div>
+      </div>
+    </div>
+    <div class="roadmap-panel">
+      <h2>5.2 创作者分层策略</h2>
+      <p>粉丝量只是参考标准，实际还要结合内容稳定性、近 5 条表现和账号目标判断阶段。</p>
+      <div class="roadmap-list">
+        <div class="roadmap-item"><b>冷启期</b><span><em>判定：</em>0-1 万粉，内容方向未稳定，数据波动大。</span><span><em>重点：</em>定位、选题稳定、发布安全。</span><span><em>指标：</em>发布频率、选题采纳率、基础完播率。</span><span><em>变现：</em>先建立内容方向和基础信任，不急于商业化。</span></div>
+        <div class="roadmap-item"><b>成长期</b><span><em>判定：</em>1-10 万粉，已有初步爆款或稳定内容方向。</span><span><em>重点：</em>复制有效内容结构，提升互动和转粉。</span><span><em>指标：</em>完播率、收藏率、互动率、涨粉率。</span><span><em>变现：</em>测试私域沉淀、咨询、课程或带货线索。</span></div>
+        <div class="roadmap-item"><b>腰部期</b><span><em>判定：</em>10-50 万粉，有稳定受众，但增长开始放缓。</span><span><em>重点：</em>系列化内容、粉丝转化、账号资产沉淀。</span><span><em>指标：</em>复访率、关注转化、系列内容留存。</span><span><em>变现：</em>形成品牌合作、课程服务、直播带货等稳定路径。</span></div>
+        <div class="roadmap-item"><b>成熟期</b><span><em>判定：</em>50 万粉以上，内容模型成熟，开始追求效率和规模化。</span><span><em>重点：</em>策略复用、矩阵扩展、团队协作。</span><span><em>指标：</em>实验结论复用率、矩阵扩展效率、团队产能。</span><span><em>变现：</em>提升矩阵变现、产品化服务和团队化运营效率。</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>Douyin Creator Growth AI Toolchain · 复盘成长闭环展示</span>
+    <span>Douyin Creator Growth AI Toolchain · 2026</span>
+  </footer>
+
+</div>
+
+<script>
+  window.addEventListener("load", () => {
+    document.getElementById("pageLoader")?.classList.add("hide");
+  });
+
+  const scrollProgress = document.getElementById("scrollProgress");
+  window.addEventListener("scroll", () => {
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    scrollProgress.style.width = h > 0 ? `${(window.scrollY / h * 100).toFixed(1)}%` : "0%";
+  }, { passive: true });
+
+  const cursorGlow = document.getElementById("cursorGlow");
+  let glowActive = false;
+  document.addEventListener("mousemove", e => {
+    if (!glowActive) {
+      cursorGlow.classList.add("active");
+      glowActive = true;
+    }
+    cursorGlow.style.left = e.clientX + "px";
+    cursorGlow.style.top = e.clientY + "px";
+  });
+
+  const heroGlow = document.getElementById("heroGlow");
+  document.querySelector(".header").addEventListener("mousemove", e => {
+    heroGlow.style.setProperty("--mx", `${(e.clientX / window.innerWidth * 100).toFixed(1)}%`);
+    heroGlow.style.setProperty("--my", `${(e.clientY / window.innerHeight * 100).toFixed(1)}%`);
+  });
+
+  // 鼠标跟随光效
+  document.querySelectorAll(".card").forEach(card => {
+    card.addEventListener("mousemove", e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      card.style.setProperty("--my", `${e.clientY - r.top}px`);
+    });
+  });
+
+  const feedbackTools = [
+    { name: "创作者灵感加油站", key: "cs_inspiration_feedback_v1" },
+    { name: "内容安全审核助手", key: "tool_feedback_content_safety_v1" },
+    { name: "AI 复盘诊断台", key: "tool_feedback_postmortem_v1" },
+    { name: "创作者复盘成长助手", key: "tool_feedback_creatorinsight_v1" },
+    { name: "A/B 实验设计助手", key: "tool_feedback_ab_test_v1" },
+    { name: "PRD Copilot", key: "tool_feedback_prd_v1" },
+  ];
+
+  const feedbackLabel = { up: "👍 有帮助", down: "👎 没帮助" };
+
+  function readFeedbackRows() {
+    return feedbackTools.map(tool => {
+      let data = null;
+      try {
+        data = JSON.parse(localStorage.getItem(tool.key) || "null");
+      } catch {
+        data = null;
+      }
+      return {
+        tool: tool.name,
+        key: tool.key,
+        value: data?.value || "",
+        reason: data?.reason || "",
+        text: data?.text || "",
+        updatedAt: data?.updatedAt || "",
+      };
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value || "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    }[c]));
+  }
+
+  function formatFeedbackTime(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function renderFeedbackInlineSummary() {
+    const rows = readFeedbackRows();
+    const submitted = rows.filter(row => row.value);
+    const upCount = submitted.filter(row => row.value === "up").length;
+    const downCount = submitted.filter(row => row.value === "down").length;
+    const target = document.getElementById("feedbackInlineSummary");
+    if (!target) return;
+    target.textContent = submitted.length
+      ? `已记录 ${submitted.length}/6 条反馈：${upCount} 条有帮助，${downCount} 条没帮助。`
+      : "查看 6 个 demo 的点赞、点踩、原因和补充说明。";
+  }
+
+  renderFeedbackInlineSummary();
+</script>
+</body>
+</html>
